@@ -16,6 +16,7 @@ interface HistoryItem {
           input?: any;
           tool_use_id?: string;
           tool_call_id?: string;
+          content?: string;
         }[];
     tool_calls?: any;
     tool_use_id?: string;
@@ -110,21 +111,42 @@ export class HistoryParser {
 
           // Handle user messages
           if (item.type === "user" && item.message.role === "user") {
-            let content = "";
             if (typeof item.message.content === "string") {
-              content = item.message.content;
-            } else if (Array.isArray(item.message.content)) {
-              content = item.message.content
-                .filter((c) => c.type !== "tool_result")
-                .map((c) => c.text || (c.file ? c.file.content : ""))
-                .join("\n");
+              return {
+                id: item.uuid,
+                role: "user",
+                content: item.message.content,
+              };
             }
 
-            return {
-              id: item.uuid,
-              role: "user",
-              content: content,
-            };
+            if (Array.isArray(item.message.content)) {
+              const parts: { type: "text"; text: string }[] = [];
+              let textContent = "";
+
+              item.message.content.forEach((c) => {
+                if (c.type === "text" && c.text) {
+                  textContent += c.text;
+                } else if (c.file && c.file.content) {
+                  textContent += c.file.content;
+                } else if (c.type === "tool_result" && c.content) {
+                  textContent += c.content;
+                }
+              });
+
+              if (textContent) {
+                parts.push({
+                  type: "text",
+                  text: textContent,
+                });
+              }
+
+              return {
+                id: item.uuid,
+                role: "user",
+                content: textContent,
+                ...(parts.length > 0 && { parts }),
+              };
+            }
           }
 
           return null;
