@@ -1,12 +1,12 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, MessageSquare, FileText, Download } from 'lucide-react';
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { ConversationView } from './components/ConversationView';
 import { FileUpload } from './components/FileUpload';
 import { JsonInput } from './components/JsonInput';
 
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<UIMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'upload' | 'json'>('upload');
 

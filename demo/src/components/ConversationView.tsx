@@ -1,9 +1,9 @@
 import React from 'react';
 import { User, Bot, Settings, Play, CheckCircle } from 'lucide-react';
-import type { Message, ToolInvocation } from 'ai';
+import type { UIMessage } from 'ai';
 
 interface ConversationViewProps {
-  messages: Message[];
+  messages: UIMessage[];
 }
 
 export function ConversationView({ messages }: ConversationViewProps) {
@@ -17,7 +17,7 @@ export function ConversationView({ messages }: ConversationViewProps) {
 }
 
 interface MessageBubbleProps {
-  message: Message;
+  message: UIMessage;
 }
 
 function MessageBubble({ message }: MessageBubbleProps) {
@@ -45,77 +45,80 @@ function MessageBubble({ message }: MessageBubbleProps) {
             </div>
           )}
           
-          {message.toolInvocations && message.toolInvocations.length > 0 && (
+          {message.parts && message.parts.length > 0 && (
             <div className="space-y-3 mt-3">
-              {message.toolInvocations.map((invocation, index) => (
-                <ToolInvocationRenderer key={index} invocation={invocation} />
-              ))}
+              {message.parts.map((part, index) => {
+                if (part.type === 'tool-invocation' && part.toolInvocation) {
+                  const invocation = part.toolInvocation;
+                  return (
+                    <ToolInvocationCard key={index} invocation={invocation} />
+                  );
+                }
+                return null;
+              })}
             </div>
           )}
-        </div>
-        
-        <div className={`text-xs text-slate-500 dark:text-slate-400 mt-1 ${
-          isUser ? 'text-right' : 'text-left'
-        }`}>
-          ID: {message.id}
         </div>
       </div>
     </div>
   );
 }
 
-interface ToolInvocationRendererProps {
-  invocation: ToolInvocation;
+interface ToolInvocationCardProps {
+  invocation: {
+    state: string;
+    toolCallId: string;
+    toolName: string;
+    args: any;
+    result?: any;
+  };
 }
 
-function ToolInvocationRenderer({ invocation }: ToolInvocationRendererProps) {
+function ToolInvocationCard({ invocation }: ToolInvocationCardProps) {
   const isCompleted = invocation.state === 'result';
   
   return (
-    <div className="border border-slate-200 dark:border-slate-600 rounded-lg p-3 bg-slate-50 dark:bg-slate-900/50">
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <Settings className="h-4 w-4 text-slate-600 dark:text-slate-400" />
-          <span className="font-medium text-sm text-slate-700 dark:text-slate-300">
-            {invocation.toolName}
-          </span>
-          <div className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full ${
-            isCompleted 
-              ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-              : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300'
-          }`}>
-            {isCompleted ? <CheckCircle className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-            {isCompleted ? 'Completed' : 'Calling'}
-          </div>
+    <div className="bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-600 rounded-lg p-3">
+      <div className="flex items-center gap-2 mb-2">
+        <div className={`p-1 rounded ${
+          isCompleted 
+            ? 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400' 
+            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-600 dark:text-yellow-400'
+        }`}>
+          {isCompleted ? <CheckCircle className="h-4 w-4" /> : <Play className="h-4 w-4" />}
         </div>
-        <span className="text-xs text-slate-500 dark:text-slate-400 font-mono">
-          {invocation.toolCallId}
+        <span className="font-medium text-sm">
+          {invocation.toolName}
+        </span>
+        <span className={`text-xs px-2 py-1 rounded-full ${
+          isCompleted 
+            ? 'bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300' 
+            : 'bg-yellow-100 dark:bg-yellow-900 text-yellow-700 dark:text-yellow-300'
+        }`}>
+          {isCompleted ? 'Completed' : 'Running'}
         </span>
       </div>
       
-      {Object.keys(invocation.args).length > 0 && (
-        <div className="mb-3">
-          <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-            Arguments:
-          </div>
-          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded overflow-x-auto">
+      {invocation.args && Object.keys(invocation.args).length > 0 && (
+        <div className="mb-2">
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Arguments:</div>
+          <pre className="text-xs bg-slate-100 dark:bg-slate-800 p-2 rounded border overflow-x-auto">
             {JSON.stringify(invocation.args, null, 2)}
           </pre>
         </div>
       )}
       
-              {invocation.state === 'result' && 'result' in invocation && (
-          <div>
-            <div className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
-              Result:
-            </div>
-            <div className="text-sm bg-green-50 dark:bg-green-900/20 p-2 rounded border border-green-200 dark:border-green-800">
-              <pre className="whitespace-pre-wrap text-green-800 dark:text-green-200 overflow-x-auto">
-                {(invocation as any).result}
-              </pre>
-            </div>
+      {invocation.result && (
+        <div>
+          <div className="text-xs text-slate-500 dark:text-slate-400 mb-1">Result:</div>
+          <div className="text-sm bg-slate-100 dark:bg-slate-800 p-2 rounded border">
+            {typeof invocation.result === 'string' 
+              ? invocation.result 
+              : JSON.stringify(invocation.result, null, 2)
+            }
           </div>
-        )}
+        </div>
+      )}
     </div>
   );
 } 

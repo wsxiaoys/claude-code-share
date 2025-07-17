@@ -1,116 +1,31 @@
 import React, { useCallback } from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
+import { HistoryParser } from '../../../src/HistoryParser';
 
 interface FileUploadProps {
-  onMessagesLoaded: (messages: Message[]) => void;
+  onMessagesLoaded: (messages: UIMessage[]) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
 }
 
 export function FileUpload({ onMessagesLoaded, loading, setLoading }: FileUploadProps) {
-  const processJSONLFile = useCallback((content: string): Message[] => {
-    try {
-      const lines = content.split('\n').filter(Boolean);
-      const parsedData = lines.map((line) => JSON.parse(line));
-      
-      // Build a map of tool results by tool call ID
-      const toolResultsMap = new Map<string, any>();
-      parsedData.forEach((item) => {
-        if (item.message && Array.isArray(item.message.content)) {
-          item.message.content.forEach((c: any) => {
-            if (c.type === 'tool_result' && c.tool_use_id) {
-              toolResultsMap.set(c.tool_use_id, c);
-            }
-          });
-        }
-      });
-
-      const extractedMessages: Message[] = parsedData
-        .map((item) => {
-          if (!item.message) {
-            return null;
-          }
-
-          // Handle assistant messages
-          if (item.type === 'assistant' && item.message.role === 'assistant') {
-            const toolInvocations: any[] = [];
-            let textContent = '';
-
-            if (typeof item.message.content === 'string') {
-              textContent = item.message.content;
-            } else if (Array.isArray(item.message.content)) {
-              item.message.content.forEach((c: any) => {
-                if (c.type === 'text' && c.text) {
-                  textContent += c.text;
-                } else if (c.type === 'tool_use' && c.id && c.name) {
-                  // Check if we have a result for this tool call
-                  const toolResult = toolResultsMap.get(c.id);
-
-                  const toolInvocation = {
-                    state: toolResult ? 'result' : 'call',
-                    toolCallId: c.id,
-                    toolName: c.name,
-                    args: c.input || {},
-                    ...(toolResult && { result: toolResult.content || '' }),
-                  };
-                  toolInvocations.push(toolInvocation);
-                }
-              });
-            }
-
-            return {
-              id: item.uuid,
-              role: 'assistant',
-              content: textContent || '',
-              ...(toolInvocations.length > 0 && { toolInvocations }),
-            } as Message;
-          }
-
-          // Handle user messages
-          if (item.type === 'user' && item.message.role === 'user') {
-            let content = '';
-            if (typeof item.message.content === 'string') {
-              content = item.message.content;
-            } else if (Array.isArray(item.message.content)) {
-              content = item.message.content
-                .filter((c: any) => c.type !== 'tool_result')
-                .map((c: any) => c.text || (c.file ? c.file.content : ''))
-                .join('\n');
-            }
-
-            return {
-              id: item.uuid,
-              role: 'user',
-              content: content,
-            };
-          }
-
-          return null;
-        })
-        .filter((message): message is Message => message !== null);
-
-      return extractedMessages;
-    } catch (error) {
-      console.error('Error processing JSONL:', error);
-      throw new Error('Invalid JSONL format');
-    }
-  }, []);
+  const historyParser = new HistoryParser();
 
   const handleFileUpload = useCallback(
     async (event: React.ChangeEvent<HTMLInputElement>) => {
-      const target = event.target as HTMLInputElement;
-      const file = target.files?.[0];
+      const input = event.target as HTMLInputElement;
+      const file = input.files?.[0];
       if (!file) return;
 
       setLoading(true);
       try {
         const content = await file.text();
         
-        let messages: Message[];
+        let messages: UIMessage[];
         
         if (file.name.endsWith('.jsonl')) {
-          messages = processJSONLFile(content);
+          messages = historyParser.parseFromString(content);
         } else if (file.name.endsWith('.json')) {
           // Try to parse as direct JSON array
           const parsed = JSON.parse(content);
@@ -129,10 +44,10 @@ export function FileUpload({ onMessagesLoaded, loading, setLoading }: FileUpload
       } finally {
         setLoading(false);
         // Reset file input
-        target.value = '';
+        input.value = '';
       }
     },
-    [onMessagesLoaded, setLoading, processJSONLFile]
+    [onMessagesLoaded, setLoading, historyParser]
   );
 
   return (

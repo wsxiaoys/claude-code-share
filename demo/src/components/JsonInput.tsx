@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { FileText, AlertCircle } from 'lucide-react';
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 
 interface JsonInputProps {
-  onMessagesLoaded: (messages: Message[]) => void;
+  onMessagesLoaded: (messages: UIMessage[]) => void;
   loading: boolean;
   setLoading: (loading: boolean) => void;
 }
@@ -34,7 +34,7 @@ export function JsonInput({ onMessagesLoaded, loading, setLoading }: JsonInputPr
           }
         }
 
-        onMessagesLoaded(parsed as Message[]);
+        onMessagesLoaded(parsed as UIMessage[]);
         setJsonText('');
       } catch (error) {
         alert(`Error parsing JSON: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -46,39 +46,29 @@ export function JsonInput({ onMessagesLoaded, loading, setLoading }: JsonInputPr
   );
 
   const handleLoadSample = useCallback(() => {
-    const sampleData: Message[] = [
+    const sampleData: UIMessage[] = [
       {
         id: 'msg-1',
         role: 'user',
-        content: 'Hello! Can you help me with a coding problem?'
+        content: 'Hello! Can you help me with a coding problem?',
+        parts: [
+          {
+            type: 'text',
+            text: 'Hello! Can you help me with a coding problem?'
+          }
+        ]
       },
       {
         id: 'msg-2',
         role: 'assistant',
-        content: 'Of course! I\'d be happy to help you with your coding problem. What specific issue are you working on?'
-      },
-      {
-        id: 'msg-3',
-        role: 'user',
-        content: 'I need to create a function that sorts an array of numbers.'
-      },
-      {
-        id: 'msg-4',
-        role: 'assistant',
-        content: 'I\'ll help you create a sorting function. Let me show you a few different approaches.',
-        toolInvocations: [
+        content: 'Of course! I\'d be happy to help you with your coding problem. What specific issue are you working on?',
+        parts: [
           {
-            state: 'result',
-            toolCallId: 'call_123',
-            toolName: 'code_editor',
-            args: {
-              language: 'javascript',
-              code: 'function sortNumbers(arr) {\n  return arr.sort((a, b) => a - b);\n}'
-            },
-            result: 'Function created successfully'
+            type: 'text',
+            text: 'Of course! I\'d be happy to help you with your coding problem. What specific issue are you working on?'
           }
         ]
-      }
+      },
     ];
     
     setJsonText(JSON.stringify(sampleData, null, 2));
