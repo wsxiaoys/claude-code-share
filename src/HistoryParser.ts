@@ -14,6 +14,8 @@ interface HistoryItem {
           id?: string;
           name?: string;
           input?: any;
+          tool_use_id?: string;
+          tool_call_id?: string;
         }[];
     tool_calls?: any;
     tool_use_id?: string;
@@ -33,50 +35,89 @@ export class HistoryParser {
       const lines = fileContent.split("\n").filter(Boolean);
       const parsedData: HistoryItem[] = lines.map((line) => JSON.parse(line));
 
+      // Build a map of tool results by tool call ID
+      const toolResultsMap = new Map<string, any>();
+      parsedData.forEach((item) => {
+        if (item.message && Array.isArray(item.message.content)) {
+          item.message.content.forEach((c) => {
+            if (c.type === "tool_result" && c.tool_use_id) {
+              toolResultsMap.set(c.tool_use_id, c);
+            }
+          });
+        }
+      });
+
       const extractedMessages: UIMessage[] = parsedData
         .map((item) => {
           if (!item.message) {
             return null;
           }
-          let content;
-          if (typeof item.message.content === "string") {
-            content = item.message.content;
-          } else if (Array.isArray(item.message.content)) {
-            content = item.message.content
-              .map((c) => c.text || (c.file ? c.file.content : ""))
-              .join("\n");
-          } else {
-            content = "";
+
+          // Handle assistant messages
+          if (item.type === "assistant" && item.message.role === "assistant") {
+            const parts: any[] = [];
+            let textContent = "";
+
+            if (typeof item.message.content === "string") {
+              textContent = item.message.content;
+            } else if (Array.isArray(item.message.content)) {
+              item.message.content.forEach((c) => {
+                if (c.type === "text" && c.text) {
+                  textContent += c.text;
+                } else if (c.type === "tool_use" && c.id && c.name) {
+                  // Check if we have a result for this tool call
+                  const toolResult = toolResultsMap.get(c.id);
+
+                  const toolInvocation = {
+                    type: "tool-invocation",
+                    toolInvocation: {
+                      state: toolResult ? "result" : "call",
+                      toolCallId: c.id,
+                      toolName: c.name,
+                      args: c.input || {},
+                      ...(toolResult && { result: toolResult.content || "" }),
+                    },
+                  };
+                  parts.push(toolInvocation);
+                }
+              });
+            }
+
+            // Add text part if there's text content
+            if (textContent) {
+              parts.unshift({
+                type: "text",
+                text: textContent,
+              });
+            }
+
+            return {
+              id: item.uuid,
+              role: "assistant",
+              content: textContent || "",
+              ...(parts.length > 0 && { parts }),
+            } as UIMessage;
           }
 
-          if (
-            item.type === "user" ||
-            (item.type === "assistant" && item.message.role !== "tool")
-          ) {
+          // Handle user messages
+          if (item.type === "user" && item.message.role === "user") {
+            let content = "";
+            if (typeof item.message.content === "string") {
+              content = item.message.content;
+            } else if (Array.isArray(item.message.content)) {
+              content = item.message.content
+                .filter((c) => c.type !== "tool_result")
+                .map((c) => c.text || (c.file ? c.file.content : ""))
+                .join("\n");
+            }
+
             return {
               id: item.uuid,
-              role: item.message.role,
+              role: "user",
               content: content,
             };
-          } else if (
-            item.message.role === "user" &&
-            typeof item.message.content === "object" &&
-            Array.isArray(item.message.content) &&
-            item.message.content[0] &&
-            item.message.content[0].type === "tool_result" &&
-            "content" in item.message.content[0]
-          ) {
-            return {
-              id: item.uuid,
-              role: "tool",
-              content: (
-                item.message.content[0] as {
-                  type: string;
-                  content: string;
-                }
-              ).content,
-            };
           }
+
           return null;
         })
         .filter((message): message is UIMessage => message !== null);
