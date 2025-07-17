@@ -1,4 +1,3 @@
-import { query, type SDKMessage } from "@anthropic-ai/claude-code";
 import path from "path";
 import { HistoryParser } from "./src/HistoryParser";
 
