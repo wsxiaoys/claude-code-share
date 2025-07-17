@@ -32,7 +32,16 @@ export class HistoryParser {
   public parse(filePath: string): UIMessage[] {
     try {
       const fileContent = fs.readFileSync(filePath, "utf-8");
-      const lines = fileContent.split("\n").filter(Boolean);
+      return this.parseFromString(fileContent);
+    } catch (error) {
+      console.error("Error processing file:", error);
+      return [];
+    }
+  }
+
+  public parseFromString(content: string): UIMessage[] {
+    try {
+      const lines = content.split("\n").filter(Boolean);
       const parsedData: HistoryItem[] = lines.map((line) => JSON.parse(line));
 
       // Build a map of tool results by tool call ID
@@ -124,7 +133,7 @@ export class HistoryParser {
 
       return extractedMessages;
     } catch (error) {
-      console.error("Error processing file:", error);
+      console.error("Error processing content:", error);
       return [];
     }
   }
