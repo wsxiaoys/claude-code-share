@@ -1,9 +1,14 @@
 import path from "path";
 import { HistoryParser } from "./src/HistoryParser";
 
-const filePath = path.resolve(
-  "/Users/allenz/.claude/projects/-Users-allenz-Documents-foxychat-app/28687881-6c8e-4263-a4a8-ab116223d5b3.jsonl"
-);
+const filePathArg = process.argv[2];
+
+if (!filePathArg) {
+  console.error("Usage: bun index.ts <path_to_jsonl_file>");
+  process.exit(1);
+}
+
+const filePath = path.resolve(filePathArg);
 
 const historyParser = new HistoryParser();
 const messages = historyParser.parse(filePath);
