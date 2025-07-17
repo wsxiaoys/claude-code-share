@@ -1,4 +1,5 @@
-import { type UIMessage } from "ai";
+import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
+import { query, type SDKMessage } from "@anthropic-ai/claude-code";
 import fs from "fs";
 
 interface HistoryItem {
@@ -65,7 +66,11 @@ export class HistoryParser {
 
           // Handle assistant messages
           if (item.type === "assistant" && item.message.role === "assistant") {
-            const parts: any[] = [];
+            type ToolInvocationPart = {
+              type: "tool-invocation";
+              toolInvocation: ToolInvocation;
+            };
+            const parts: (TextPart | ToolInvocationPart)[] = [];
             let textContent = "";
 
             if (typeof item.message.content === "string") {
@@ -78,7 +83,7 @@ export class HistoryParser {
                   // Check if we have a result for this tool call
                   const toolResult = toolResultsMap.get(c.id);
 
-                  const toolInvocation = {
+                  const toolInvocation: ToolInvocationPart = {
                     type: "tool-invocation",
                     toolInvocation: {
                       state: toolResult ? "result" : "call",
@@ -86,7 +91,7 @@ export class HistoryParser {
                       toolName: c.name,
                       args: c.input || {},
                       ...(toolResult && { result: toolResult.content || "" }),
-                    },
+                    } as ToolInvocation,
                   };
                   parts.push(toolInvocation);
                 }
@@ -120,7 +125,7 @@ export class HistoryParser {
             }
 
             if (Array.isArray(item.message.content)) {
-              const parts: { type: "text"; text: string }[] = [];
+              const parts: TextPart[] = [];
               let textContent = "";
 
               item.message.content.forEach((c) => {
