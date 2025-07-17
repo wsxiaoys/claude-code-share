@@ -6,7 +6,7 @@
 
 1. bun install
 
-2. bun run index.ts
+2. bun index.ts <Your Claude Code History .jsonl>
 
 ### Web page (This give better chat view)
 
