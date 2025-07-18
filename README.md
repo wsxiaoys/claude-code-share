@@ -1,5 +1,7 @@
 # Claude-code-history-To-Ai-SDK-Parser
 
+Claude code history should be located at your users .claude/projects/
+
 ## Get started
 
 1. bun install
@@ -8,7 +10,7 @@
 
 2. cd HistoryParser
 
-3. bun index.ts <Your Claude Code History .jsonl>
+3. bun run index.ts <Your Claude Code History .jsonl> or bun run index.ts example.jsonl
 
 4. Check the result in output
 
