@@ -14,9 +14,9 @@
 
 ### Web page (This give better chat view)
 
-1. cd demo
+2. cd demo
 
-2. bun run dev
+3. bun run dev
 
 ## Project Structure
 
