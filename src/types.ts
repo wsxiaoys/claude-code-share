@@ -61,6 +61,7 @@ type HistoryMessage = {
   requestId?: string;
   uuid: string;
   timestamp: string;
+  toolUseResult?: any;
 };
 
 export type ClaudeCodeMessage = HistoryMessage;
