@@ -12,6 +12,8 @@
 
 4. Check the result in output
 
+5. bun run test (check if the result format match UIMessage in AI SDK)
+
 ### Web page (This give better chat view)
 
 2. cd demo
