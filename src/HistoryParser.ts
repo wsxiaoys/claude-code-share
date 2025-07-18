@@ -24,8 +24,6 @@ export class HistoryParser {
         JSON.parse(line)
       );
 
-      console.log(parsedData[8]);
-
       // Build a map of tool results by tool call ID
       const toolResultsMap = new Map<string, any>();
       parsedData.forEach((item) => {
