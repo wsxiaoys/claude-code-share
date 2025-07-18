@@ -8,6 +8,8 @@
 
 2. bun index.ts <Your Claude Code History .jsonl>
 
+3. Check the result in output
+
 ### Web page (This give better chat view)
 
 1. cd demo
