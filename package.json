@@ -13,6 +13,7 @@
     "parse": "bun run cli.ts parse"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.56.0",
     "ai": "^4.3.19",
     "commander": "^14.0.0"
   },
