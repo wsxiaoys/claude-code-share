@@ -1,23 +1,14 @@
 {
   "name": "claude-code-history-to-ai-sdk-parser",
-  "module": "src/index.js",
-  "type": "module",
   "private": true,
-  "scripts": {
-    "start": "bun run index.ts",
-    "dev": "bun run --watch index.ts",
-    "cli": "bun run cli.ts",
-    "demo": "bun run cli.ts demo",
-    "demo:install": "bun run cli.ts setup",
-    "demo:build": "cd demo && npm run build",
-    "parse": "bun run cli.ts parse"
-  },
-  "dependencies": {
-    "@anthropic-ai/sdk": "^0.56.0",
-    "ai": "^4.3.19",
-    "commander": "^14.0.0"
-  },
+  "workspaces": [
+    "Demo",
+    "HistoryParser"
+  ],
   "devDependencies": {
-    "bun-types": "latest"
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
   }
 }

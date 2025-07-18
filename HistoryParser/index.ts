@@ -14,8 +14,13 @@ const filePath = path.resolve(filePathArg);
 const historyParser = new HistoryParser();
 const messages = historyParser.parse(filePath);
 
+const outputDir = path.join("output");
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true });
+}
+
 fs.writeFileSync(
-  path.join("output", "ai-sdk-format.txt"),
+  path.join(outputDir, "ai-sdk-format.txt"),
   JSON.stringify(messages, null, 2),
   "utf-8"
 );

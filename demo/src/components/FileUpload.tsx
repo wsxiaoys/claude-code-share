@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { Upload, AlertCircle } from 'lucide-react';
 import type { UIMessage } from 'ai';
-import { HistoryParser } from '../../../src/HistoryParser';
+import { HistoryParser } from '../../../HistoryParser/src/HistoryParser';
 
 interface FileUploadProps {
   onMessagesLoaded: (messages: UIMessage[]) => void;
