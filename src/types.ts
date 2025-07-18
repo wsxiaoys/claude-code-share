@@ -1,25 +1,34 @@
-import type { SDKMessage } from "@anthropic-ai/claude-code";
-
-// Type for the JSONL file entries that wrap Claude Code messages
-export type ClaudeCodeMessage = {
+// Updated to match actual Claude Code history format
+type UserMessage = {
   parentUuid: string | null;
   isSidechain: boolean;
   userType: string;
   cwd: string;
   sessionId: string;
   version: string;
-  type: string;
-  message?: {
-    role: string;
-    content?: any;
-    id?: string;
-    [key: string]: any;
+  type: "user";
+  message: {
+    role: "user";
+    content: string | Array<any>;
   };
   uuid: string;
   timestamp: string;
-  toolUseResult?: any;
-  [key: string]: any;
 };
 
-// Re-export SDKMessage for convenience
-export type { SDKMessage };
+type AssistantHistoryMessage = {
+  parentUuid: string | null;
+  isSidechain: boolean;
+  userType: string;
+  cwd: string;
+  sessionId: string;
+  version: string;
+  type: "assistant";
+  message: {
+    role: "assistant";
+    content: string | Array<any>;
+  };
+  uuid: string;
+  timestamp: string;
+};
+
+export type ClaudeCodeMessage = UserMessage | AssistantHistoryMessage;

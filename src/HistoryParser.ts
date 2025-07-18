@@ -20,26 +20,30 @@ export class HistoryParser {
         JSON.parse(line)
       );
 
+      console.log(parsedData[0]);
+
       // Build a map of tool results by tool call ID
       const toolResultsMap = new Map<string, any>();
       parsedData.forEach((item) => {
-        if (item.message && Array.isArray(item.message.content)) {
-          item.message.content.forEach((c: any) => {
-            if (c.type === "tool_result" && c.tool_use_id) {
-              toolResultsMap.set(c.tool_use_id, c);
-            }
-          });
+        if (item.type === "user" || item.type === "assistant") {
+          if (item.message && Array.isArray(item.message.content)) {
+            item.message.content.forEach((c: any) => {
+              if (c.type === "tool_result" && c.tool_use_id) {
+                toolResultsMap.set(c.tool_use_id, c);
+              }
+            });
+          }
         }
       });
 
       const extractedMessages: UIMessage[] = parsedData
         .map((item) => {
-          if (!item.message) {
-            return null;
-          }
-
-          // Handle assistant messages
-          if (item.type === "assistant" && item.message.role === "assistant") {
+          // Handle assistant messages from history
+          if (
+            item.type === "assistant" &&
+            "uuid" in item &&
+            item.message.role === "assistant"
+          ) {
             type ToolInvocationPart = {
               type: "tool-invocation";
               toolInvocation: ToolInvocation;
@@ -81,18 +85,22 @@ export class HistoryParser {
             }
 
             return {
-              id: item.uuid || item.message.id || Date.now().toString(),
+              id: item.uuid,
               role: "assistant",
               content: textContent || "",
               ...(parts.length > 0 && { parts }),
             } as UIMessage;
           }
 
-          // Handle user messages
-          if (item.type === "user" && item.message.role === "user") {
+          // Handle user messages from history
+          if (
+            item.type === "user" &&
+            "uuid" in item &&
+            item.message.role === "user"
+          ) {
             if (typeof item.message.content === "string") {
               return {
-                id: item.uuid || item.message.id || Date.now().toString(),
+                id: item.uuid,
                 role: "user",
                 content: item.message.content,
               };
@@ -120,7 +128,7 @@ export class HistoryParser {
               }
 
               return {
-                id: item.uuid || item.message.id || Date.now().toString(),
+                id: item.uuid,
                 role: "user",
                 content: textContent,
                 ...(parts.length > 0 && { parts }),
