@@ -1,34 +1,6 @@
 import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
-import { query, type SDKMessage } from "@anthropic-ai/claude-code";
+import { type ClaudeCodeMessage } from "./types";
 import fs from "fs";
-
-interface HistoryItem {
-  type: "user" | "assistant";
-  message: {
-    role: "user" | "assistant" | "tool";
-    content:
-      | string
-      | {
-          type: string;
-          text?: string;
-          file?: { content: string };
-          id?: string;
-          name?: string;
-          input?: any;
-          tool_use_id?: string;
-          tool_call_id?: string;
-          content?: string;
-        }[];
-    tool_calls?: any;
-    tool_use_id?: string;
-  };
-  toolUseResult?: {
-    file?: {
-      content: string;
-    };
-  };
-  uuid: string;
-}
 
 export class HistoryParser {
   public parse(filePath: string): UIMessage[] {
@@ -44,13 +16,15 @@ export class HistoryParser {
   public parseFromString(content: string): UIMessage[] {
     try {
       const lines = content.split("\n").filter(Boolean);
-      const parsedData: HistoryItem[] = lines.map((line) => JSON.parse(line));
+      const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
+        JSON.parse(line)
+      );
 
       // Build a map of tool results by tool call ID
       const toolResultsMap = new Map<string, any>();
       parsedData.forEach((item) => {
         if (item.message && Array.isArray(item.message.content)) {
-          item.message.content.forEach((c) => {
+          item.message.content.forEach((c: any) => {
             if (c.type === "tool_result" && c.tool_use_id) {
               toolResultsMap.set(c.tool_use_id, c);
             }
@@ -76,7 +50,7 @@ export class HistoryParser {
             if (typeof item.message.content === "string") {
               textContent = item.message.content;
             } else if (Array.isArray(item.message.content)) {
-              item.message.content.forEach((c) => {
+              item.message.content.forEach((c: any) => {
                 if (c.type === "text" && c.text) {
                   textContent += c.text;
                 } else if (c.type === "tool_use" && c.id && c.name) {
@@ -107,7 +81,7 @@ export class HistoryParser {
             }
 
             return {
-              id: item.uuid,
+              id: item.uuid || item.message.id || Date.now().toString(),
               role: "assistant",
               content: textContent || "",
               ...(parts.length > 0 && { parts }),
@@ -118,7 +92,7 @@ export class HistoryParser {
           if (item.type === "user" && item.message.role === "user") {
             if (typeof item.message.content === "string") {
               return {
-                id: item.uuid,
+                id: item.uuid || item.message.id || Date.now().toString(),
                 role: "user",
                 content: item.message.content,
               };
@@ -128,11 +102,11 @@ export class HistoryParser {
               const parts: TextPart[] = [];
               let textContent = "";
 
-              item.message.content.forEach((c) => {
+              item.message.content.forEach((c: any) => {
                 if (c.type === "text" && c.text) {
                   textContent += c.text;
-                } else if (c.file && c.file.content) {
-                  textContent += c.file.content;
+                } else if ((c as any).file && (c as any).file.content) {
+                  textContent += (c as any).file.content;
                 } else if (c.type === "tool_result" && c.content) {
                   textContent += c.content;
                 }
@@ -146,7 +120,7 @@ export class HistoryParser {
               }
 
               return {
-                id: item.uuid,
+                id: item.uuid || item.message.id || Date.now().toString(),
                 role: "user",
                 content: textContent,
                 ...(parts.length > 0 && { parts }),
