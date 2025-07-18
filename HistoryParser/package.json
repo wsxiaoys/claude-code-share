@@ -6,11 +6,7 @@
   "scripts": {
     "start": "bun run index.ts",
     "dev": "bun run --watch index.ts",
-    "cli": "bun run cli.ts",
-    "demo": "bun run cli.ts demo",
-    "demo:install": "bun run cli.ts setup",
-    "demo:build": "cd demo && npm run build",
-    "parse": "bun run cli.ts parse"
+    "test": "bun run src/test-ai-sdk-format.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
