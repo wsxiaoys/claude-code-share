@@ -15,3 +15,9 @@
 2. bun install
 
 3. bun run dev
+
+## Project Structure
+
+/demo is the frontend demo page to quickly view the result with ai sdk ui.
+
+/src has the script HistoryParser.ts which pass the file.
