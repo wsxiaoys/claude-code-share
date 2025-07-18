@@ -2,6 +2,10 @@ import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
 import { type ClaudeCodeMessage } from "./types";
 import fs from "fs";
 
+/**
+ * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
+ * It also handles tool calls and results.
+ */
 export class HistoryParser {
   public parse(filePath: string): UIMessage[] {
     try {
@@ -20,7 +24,7 @@ export class HistoryParser {
         JSON.parse(line)
       );
 
-      console.log(parsedData[1]);
+      console.log(parsedData[8]);
 
       // Build a map of tool results by tool call ID
       const toolResultsMap = new Map<string, any>();
