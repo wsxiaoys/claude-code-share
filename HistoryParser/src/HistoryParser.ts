@@ -113,25 +113,29 @@ export class HistoryParser {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
           let toolResult = null;
-          // Look ahead to next item for tool result
-          const nextItem = parsedData[index + 1];
-          if (
-            nextItem &&
-            nextItem.type === "user" &&
-            nextItem.message &&
-            typeof nextItem.message === "object" &&
-            "role" in nextItem.message &&
-            nextItem.message.role === "user" &&
-            Array.isArray(nextItem.message.content)
-          ) {
-            // Find matching tool result
-            const toolResultContent = nextItem.message.content.find(
-              (contentPart: any) =>
-                contentPart.type === "tool_result" &&
-                contentPart.tool_use_id === c.id
-            );
-            if (toolResultContent) {
-              toolResult = toolResultContent;
+          // Look ahead through all subsequent messages to find tool result
+          // Claude may make multiple tool calls before returning results
+          for (let i = index + 1; i < parsedData.length; i++) {
+            const futureItem = parsedData[i];
+            if (
+              futureItem &&
+              futureItem.type === "user" &&
+              futureItem.message &&
+              typeof futureItem.message === "object" &&
+              "role" in futureItem.message &&
+              futureItem.message.role === "user" &&
+              Array.isArray(futureItem.message.content)
+            ) {
+              // Find matching tool result in this user message
+              const toolResultContent = futureItem.message.content.find(
+                (contentPart: any) =>
+                  contentPart.type === "tool_result" &&
+                  contentPart.tool_use_id === c.id
+              );
+              if (toolResultContent) {
+                toolResult = toolResultContent;
+                break; // Found the result, stop searching
+              }
             }
           }
 
