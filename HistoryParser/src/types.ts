@@ -1,7 +1,7 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
 import type { MessageParam } from "@anthropic-ai/sdk/resources";
 
-type InitMessage = {
+export type InitMessage = {
   type: "system";
   subtype: "init";
   session_id: string;
@@ -10,19 +10,19 @@ type InitMessage = {
   apiKeySource: "none" | "/login managed key" | string;
 };
 
-type AssistantMessage = {
+export type AssistantMessage = {
   message: Anthropic.Messages.Message;
 };
 
-type UserMessage = {
+export type UserMessage = {
   message: MessageParam;
 };
 
-type ErrorMessage = {
+export type ErrorMessage = {
   type: "error";
 };
 
-type ResultMessage = {
+export type ResultMessage = {
   type: "result";
   subtype: "success";
   total_cost_usd: number;
@@ -34,7 +34,7 @@ type ResultMessage = {
   session_id: string;
 };
 
-type NestedMessage =
+export type NestedMessage =
   | Anthropic.Messages.Message
   | MessageParam
   | InitMessage
@@ -43,7 +43,7 @@ type NestedMessage =
   | ErrorMessage
   | ResultMessage;
 
-// Claude Code history type 
+// Claude Code history type
 type HistoryMessage = {
   parentUuid: string | null;
   isSidechain: boolean;
@@ -61,5 +61,3 @@ type HistoryMessage = {
 };
 
 export type ClaudeCodeMessage = HistoryMessage;
-
-export type NestedHistoryMessage = NestedMessage;
