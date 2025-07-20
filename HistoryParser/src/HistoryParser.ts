@@ -148,6 +148,7 @@ export class HistoryParser {
         id: historyItem.uuid,
         role: "user",
         content: nestedMessage.content,
+        createdAt: new Date(historyItem.timestamp),
         parts: [{ type: "text", text: nestedMessage.content }],
       } as UIMessage;
     }
@@ -184,6 +185,7 @@ export class HistoryParser {
         id: historyItem.uuid,
         role: "user",
         content: textContent,
+        createdAt: new Date(historyItem.timestamp),
         ...(parts.length > 0 && { parts }),
       } as UIMessage;
     }
