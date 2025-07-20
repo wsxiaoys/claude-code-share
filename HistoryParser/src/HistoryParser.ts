@@ -7,6 +7,11 @@ import fs from "fs";
  * It also handles tool calls and results.
  */
 export class HistoryParser {
+  /**
+   * Parses a file at the given path and returns an array of UIMessage objects.
+   * @param filePath The path to the file to parse.
+   * @returns An array of parsed UIMessage objects.
+   */
   public parse(filePath: string): UIMessage[] {
     try {
       const fileContent = fs.readFileSync(filePath, "utf-8");
@@ -17,6 +22,11 @@ export class HistoryParser {
     }
   }
 
+  /**
+   * Parses the given string content and returns an array of UIMessage objects.
+   * @param content The string content to parse.
+   * @returns An array of parsed UIMessage objects.
+   */
   public parseFromString(content: string): UIMessage[] {
     try {
       const lines = content.split("\n").filter(Boolean);
@@ -24,174 +34,8 @@ export class HistoryParser {
         JSON.parse(line)
       );
 
-      // Build a map of tool results by tool call ID
-      const toolResultsMap = new Map<string, any>();
-      parsedData.forEach((item) => {
-        // Handle HistoryMessage wrapper format
-        if (
-          "uuid" in item &&
-          item.message &&
-          typeof item.message === "object"
-        ) {
-          const nestedMessage = item.message as any;
-
-          // Check if it's an Anthropic message with content array
-          if (nestedMessage.role && Array.isArray(nestedMessage.content)) {
-            nestedMessage.content.forEach((c: any) => {
-              if (c.type === "tool_result" && c.tool_use_id) {
-                toolResultsMap.set(c.tool_use_id, c);
-              }
-            });
-          }
-        }
-      });
-
       const extractedMessages: UIMessage[] = parsedData
-        .map((item) => {
-          // Handle HistoryMessage wrapper format
-          if (
-            "uuid" in item &&
-            item.message &&
-            typeof item.message === "object"
-          ) {
-            const nestedMessage = item.message as any;
-            const historyItem = item as any;
-
-            // Check if it's an Anthropic Messages.Message (has role, content, etc.)
-            if (
-              nestedMessage.role &&
-              (nestedMessage.content || nestedMessage.content === "")
-            ) {
-              // Handle assistant messages
-              if (
-                historyItem.type === "assistant" &&
-                nestedMessage.role === "assistant"
-              ) {
-                type ToolInvocationPart = {
-                  type: "tool-invocation";
-                  toolInvocation: ToolInvocation;
-                };
-                const parts: (TextPart | ToolInvocationPart)[] = [];
-                let textContent = "";
-
-                if (typeof nestedMessage.content === "string") {
-                  textContent = nestedMessage.content;
-                } else if (Array.isArray(nestedMessage.content)) {
-                  nestedMessage.content.forEach((c: any) => {
-                    if (c.type === "text" && c.text) {
-                      textContent += c.text;
-                    } else if (c.type === "tool_use" && c.id && c.name) {
-                      // Check if we have a result for this tool call
-                      const toolResult = toolResultsMap.get(c.id);
-
-                      const toolInvocation: ToolInvocationPart = {
-                        type: "tool-invocation",
-                        toolInvocation: {
-                          state: toolResult ? "result" : "call",
-                          toolCallId: c.id,
-                          toolName: c.name,
-                          args: c.input || {},
-                          ...(toolResult && {
-                            result: toolResult.content || "",
-                          }),
-                        } as ToolInvocation,
-                      };
-                      parts.push(toolInvocation);
-                    }
-                  });
-                }
-
-                // Add text part if there's text content
-                if (textContent) {
-                  parts.unshift({
-                    type: "text",
-                    text: textContent,
-                  });
-                }
-
-                return {
-                  id: historyItem.uuid,
-                  role: "assistant",
-                  content: textContent || "",
-                  ...(parts.length > 0 && { parts }),
-                } as UIMessage;
-              }
-
-              // Handle user messages
-              if (
-                historyItem.type === "user" &&
-                nestedMessage.role === "user"
-              ) {
-                if (typeof nestedMessage.content === "string") {
-                  return {
-                    id: historyItem.uuid,
-                    role: "user",
-                    content: nestedMessage.content,
-                  };
-                }
-
-                if (Array.isArray(nestedMessage.content)) {
-                  const parts: TextPart[] = [];
-                  let textContent = "";
-
-                  nestedMessage.content.forEach((c: any) => {
-                    if (c.type === "text" && c.text) {
-                      textContent += c.text;
-                    } else if (c.type === "image" && c.source) {
-                      // Handle image content
-                      textContent += `[Image: ${c.source.type}]`;
-                    } else if (c.type === "tool_result" && c.content) {
-                      textContent += c.content;
-                    }
-                  });
-
-                  if (textContent) {
-                    parts.push({
-                      type: "text",
-                      text: textContent,
-                    });
-                  }
-
-                  return {
-                    id: historyItem.uuid,
-                    role: "user",
-                    content: textContent,
-                    ...(parts.length > 0 && { parts }),
-                  };
-                }
-              }
-            }
-
-            // Handle other message types (ResultMessage, ErrorMessage, etc.)
-            else if (historyItem.type === "result" && nestedMessage.result) {
-              // Convert ResultMessage to a system message or skip it
-              return {
-                id: historyItem.uuid,
-                role: "system",
-                content: `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`,
-              } as UIMessage;
-            } else if (historyItem.type === "error") {
-              return {
-                id: historyItem.uuid,
-                role: "system",
-                content: "[Error occurred during conversation]",
-              } as UIMessage;
-            } else if (
-              historyItem.type === "system" &&
-              nestedMessage.subtype === "init"
-            ) {
-              return {
-                id: historyItem.uuid,
-                role: "system",
-                content: `[Session initialized with tools: ${
-                  nestedMessage.tools?.join(", ") || "none"
-                }]`,
-              } as UIMessage;
-            }
-          }
-
-          return null;
-        })
+        .map((item, index) => this._parseMessage(item, parsedData, index))
         .filter((message): message is UIMessage => message !== null);
 
       return extractedMessages;
@@ -199,5 +43,246 @@ export class HistoryParser {
       console.error("Error processing content:", error);
       return [];
     }
+  }
+
+  /**
+   * Private method to parse a single message item.
+   * @param item The ClaudeCodeMessage item to parse.
+   * @param parsedData The array of all parsed data.
+   * @param index The index of the item in the array.
+   * @returns A UIMessage object or null.
+   */
+  private _parseMessage(
+    item: ClaudeCodeMessage,
+    parsedData: ClaudeCodeMessage[],
+    index: number
+  ): UIMessage | null {
+    // Skip if message is invalid
+    if (!item.message || typeof item.message !== "object") {
+      return null;
+    }
+
+    if ("uuid" in item) {
+      const nestedMessage = item.message as any;
+
+      if ("role" in nestedMessage && "content" in nestedMessage) {
+        if (item.type === "assistant" && nestedMessage.role === "assistant") {
+          return this._parseAssistantMessage(
+            item,
+            nestedMessage,
+            parsedData,
+            index
+          );
+        }
+
+        if (item.type === "user" && nestedMessage.role === "user") {
+          return this._parseUserMessage(item, nestedMessage);
+        }
+      }
+
+      return this._parseOtherMessageTypes(item, nestedMessage);
+    }
+    return null;
+  }
+
+  /**
+   * Parses an assistant message.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @param parsedData The array of all parsed data.
+   * @param index The index of the item.
+   * @returns A UIMessage object.
+   */
+  private _parseAssistantMessage(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: any,
+    parsedData: ClaudeCodeMessage[],
+    index: number
+  ): UIMessage {
+    type ToolInvocationPart = {
+      type: "tool-invocation";
+      toolInvocation: ToolInvocation;
+    };
+    const parts: (TextPart | ToolInvocationPart)[] = [];
+    let textContent = "";
+
+    // Process array content for assistant
+    if (Array.isArray(nestedMessage.content)) {
+      nestedMessage.content.forEach((c: any) => {
+        if (c.type === "text" && c.text) {
+          textContent += c.text;
+        } else if (c.type === "tool_use" && c.id && c.name) {
+          let toolResult = null;
+          // Look ahead through all subsequent messages to find tool result
+          // Claude may make multiple tool calls before returning results
+          for (let i = index + 1; i < parsedData.length; i++) {
+            const futureItem = parsedData[i];
+            if (
+              futureItem &&
+              futureItem.type === "user" &&
+              futureItem.message &&
+              typeof futureItem.message === "object" &&
+              "role" in futureItem.message &&
+              futureItem.message.role === "user" &&
+              Array.isArray(futureItem.message.content)
+            ) {
+              // Find matching tool result in this user message
+              const toolResultContent = futureItem.message.content.find(
+                (contentPart: any) =>
+                  contentPart.type === "tool_result" &&
+                  contentPart.tool_use_id === c.id
+              );
+              if (toolResultContent) {
+                toolResult = toolResultContent;
+                break; // Found the result, stop searching
+              }
+            }
+          }
+
+          // Create tool invocation part
+          const toolInvocation: ToolInvocationPart = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: toolResult ? "result" : "call",
+              toolCallId: c.id,
+              toolName: c.name,
+              args: c.input || {},
+              ...(toolResult && {
+                result: (toolResult as any).content || "",
+              }),
+            } as ToolInvocation,
+          };
+          parts.push(toolInvocation);
+        }
+      });
+    }
+
+    // Add text part if content exists
+    if (textContent) {
+      parts.unshift({
+        type: "text",
+        text: textContent,
+      });
+    }
+
+    return {
+      id: historyItem.uuid,
+      role: "assistant",
+      content: textContent || "",
+      createdAt: new Date(historyItem.timestamp),
+      ...(parts.length > 0 && { parts }),
+    } as UIMessage;
+  }
+
+  /**
+   * Parses a user message.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @returns A UIMessage object or null.
+   */
+  private _parseUserMessage(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: any
+  ): UIMessage | null {
+    // Handle string content directly
+    if (typeof nestedMessage.content === "string") {
+      return {
+        id: historyItem.uuid,
+        role: "user",
+        content: nestedMessage.content,
+        createdAt: new Date(historyItem.timestamp),
+        parts: [{ type: "text", text: nestedMessage.content }],
+      } as UIMessage;
+    }
+
+    // Handle array content
+    if (Array.isArray(nestedMessage.content)) {
+      // Skip if only tool result
+      if (
+        nestedMessage.content.length === 1 &&
+        nestedMessage.content[0].type === "tool_result"
+      ) {
+        return null;
+      }
+
+      const parts: TextPart[] = [];
+      let textContent = "";
+
+      // Concatenate content from different types
+      nestedMessage.content.forEach((c: any) => {
+        if (c.type === "text" && c.text) {
+          textContent += c.text;
+        } else if (c.type === "image" && c.source) {
+          textContent += `[Image: ${c.source.type}]`;
+        } else if (c.type === "tool_result" && c.content) {
+          textContent += c.content;
+        }
+      });
+
+      if (textContent) {
+        parts.push({
+          type: "text",
+          text: textContent,
+        });
+      }
+
+      return {
+        id: historyItem.uuid,
+        role: "user",
+        content: textContent,
+        createdAt: new Date(historyItem.timestamp),
+        ...(parts.length > 0 && { parts }),
+      } as UIMessage;
+    }
+
+    return null;
+  }
+
+  /**
+   * Parses other types of messages like system, error, or result.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @returns A UIMessage object or null.
+   */
+  private _parseOtherMessageTypes(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: any
+  ): UIMessage | null {
+    // Handle result type
+    if (historyItem.type === "result" && "result" in nestedMessage) {
+      const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    // Handle error type
+    if (historyItem.type === "error") {
+      const content = "[Error occurred during conversation]";
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    // Handle system init
+    if (historyItem.type === "system" && nestedMessage.subtype === "init") {
+      const content = `[Session initialized with tools: ${
+        nestedMessage.tools?.join(", ") || "none"
+      }]`;
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    return null;
   }
 }

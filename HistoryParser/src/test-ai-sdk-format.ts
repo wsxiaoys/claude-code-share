@@ -38,7 +38,7 @@ try {
   };
   const errors: string[] = [];
 
-  data.forEach((msg: any, i: number) => {
+  data.forEach((msg: UIMessage, i: number) => {
     if (
       typeof msg === "object" &&
       msg !== null &&
