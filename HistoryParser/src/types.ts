@@ -11,15 +11,15 @@ type InitMessage = {
 };
 
 type AssistantMessage = {
-  type: "assistant";
+  // type: "assistant";
   message: Anthropic.Messages.Message;
-  session_id: string;
+  // session_id: string;
 };
 
 type UserMessage = {
-  type: "user";
+  // type: "user";
   message: MessageParam; // from Anthropic SDK
-  session_id: string;
+  // session_id: string;
 };
 
 type ErrorMessage = {
@@ -65,3 +65,5 @@ type HistoryMessage = {
 };
 
 export type ClaudeCodeMessage = HistoryMessage;
+
+export type NestedHistoryMessage = NestedMessage;
