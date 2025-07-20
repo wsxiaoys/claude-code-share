@@ -46,36 +46,29 @@ export class HistoryParser {
 
     if ("uuid" in item) {
       const nestedMessage = item.message as any;
-      const historyItem = item as any;
 
-      if (
-        "role" in nestedMessage &&
-        ("content" in nestedMessage || nestedMessage.content === "")
-      ) {
-        if (
-          historyItem.type === "assistant" &&
-          nestedMessage.role === "assistant"
-        ) {
+      if ("role" in nestedMessage && "content" in nestedMessage) {
+        if (item.type === "assistant" && nestedMessage.role === "assistant") {
           return this._parseAssistantMessage(
-            historyItem,
+            item,
             nestedMessage,
             parsedData,
             index
           );
         }
 
-        if (historyItem.type === "user" && nestedMessage.role === "user") {
-          return this._parseUserMessage(historyItem, nestedMessage);
+        if (item.type === "user" && nestedMessage.role === "user") {
+          return this._parseUserMessage(item, nestedMessage);
         }
       }
 
-      return this._parseOtherMessageTypes(historyItem, nestedMessage);
+      return this._parseOtherMessageTypes(item, nestedMessage);
     }
     return null;
   }
 
   private _parseAssistantMessage(
-    historyItem: any,
+    historyItem: ClaudeCodeMessage,
     nestedMessage: any,
     parsedData: ClaudeCodeMessage[],
     index: number
