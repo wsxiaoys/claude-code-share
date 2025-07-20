@@ -7,6 +7,11 @@ import fs from "fs";
  * It also handles tool calls and results.
  */
 export class HistoryParser {
+  /**
+   * Parses a file at the given path and returns an array of UIMessage objects.
+   * @param filePath The path to the file to parse.
+   * @returns An array of parsed UIMessage objects.
+   */
   public parse(filePath: string): UIMessage[] {
     try {
       const fileContent = fs.readFileSync(filePath, "utf-8");
@@ -17,6 +22,11 @@ export class HistoryParser {
     }
   }
 
+  /**
+   * Parses the given string content and returns an array of UIMessage objects.
+   * @param content The string content to parse.
+   * @returns An array of parsed UIMessage objects.
+   */
   public parseFromString(content: string): UIMessage[] {
     try {
       const lines = content.split("\n").filter(Boolean);
@@ -35,11 +45,19 @@ export class HistoryParser {
     }
   }
 
+  /**
+   * Private method to parse a single message item.
+   * @param item The ClaudeCodeMessage item to parse.
+   * @param parsedData The array of all parsed data.
+   * @param index The index of the item in the array.
+   * @returns A UIMessage object or null.
+   */
   private _parseMessage(
     item: ClaudeCodeMessage,
     parsedData: ClaudeCodeMessage[],
     index: number
   ): UIMessage | null {
+    // Skip if message is invalid
     if (!item.message || typeof item.message !== "object") {
       return null;
     }
@@ -67,6 +85,14 @@ export class HistoryParser {
     return null;
   }
 
+  /**
+   * Parses an assistant message.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @param parsedData The array of all parsed data.
+   * @param index The index of the item.
+   * @returns A UIMessage object.
+   */
   private _parseAssistantMessage(
     historyItem: ClaudeCodeMessage,
     nestedMessage: any,
@@ -80,12 +106,14 @@ export class HistoryParser {
     const parts: (TextPart | ToolInvocationPart)[] = [];
     let textContent = "";
 
+    // Process array content for assistant
     if (Array.isArray(nestedMessage.content)) {
       nestedMessage.content.forEach((c: any) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
           let toolResult = null;
+          // Look ahead to next item for tool result
           const nextItem = parsedData[index + 1];
           if (
             nextItem &&
@@ -96,6 +124,7 @@ export class HistoryParser {
             nextItem.message.role === "user" &&
             Array.isArray(nextItem.message.content)
           ) {
+            // Find matching tool result
             const toolResultContent = nextItem.message.content.find(
               (contentPart: any) =>
                 contentPart.type === "tool_result" &&
@@ -106,6 +135,7 @@ export class HistoryParser {
             }
           }
 
+          // Create tool invocation part
           const toolInvocation: ToolInvocationPart = {
             type: "tool-invocation",
             toolInvocation: {
@@ -123,6 +153,7 @@ export class HistoryParser {
       });
     }
 
+    // Add text part if content exists
     if (textContent) {
       parts.unshift({
         type: "text",
@@ -139,10 +170,17 @@ export class HistoryParser {
     } as UIMessage;
   }
 
+  /**
+   * Parses a user message.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @returns A UIMessage object or null.
+   */
   private _parseUserMessage(
     historyItem: ClaudeCodeMessage,
     nestedMessage: any
   ): UIMessage | null {
+    // Handle string content directly
     if (typeof nestedMessage.content === "string") {
       return {
         id: historyItem.uuid,
@@ -153,7 +191,9 @@ export class HistoryParser {
       } as UIMessage;
     }
 
+    // Handle array content
     if (Array.isArray(nestedMessage.content)) {
+      // Skip if only tool result
       if (
         nestedMessage.content.length === 1 &&
         nestedMessage.content[0].type === "tool_result"
@@ -164,6 +204,7 @@ export class HistoryParser {
       const parts: TextPart[] = [];
       let textContent = "";
 
+      // Concatenate content from different types
       nestedMessage.content.forEach((c: any) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
@@ -193,10 +234,17 @@ export class HistoryParser {
     return null;
   }
 
+  /**
+   * Parses other types of messages like system, error, or result.
+   * @param historyItem The history item.
+   * @param nestedMessage The nested message object.
+   * @returns A UIMessage object or null.
+   */
   private _parseOtherMessageTypes(
     historyItem: ClaudeCodeMessage,
     nestedMessage: any
   ): UIMessage | null {
+    // Handle result type
     if (historyItem.type === "result" && "result" in nestedMessage) {
       const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
       return {
@@ -207,6 +255,7 @@ export class HistoryParser {
       } as UIMessage;
     }
 
+    // Handle error type
     if (historyItem.type === "error") {
       const content = "[Error occurred during conversation]";
       return {
@@ -217,6 +266,7 @@ export class HistoryParser {
       } as UIMessage;
     }
 
+    // Handle system init
     if (historyItem.type === "system" && nestedMessage.subtype === "init") {
       const content = `[Session initialized with tools: ${
         nestedMessage.tools?.join(", ") || "none"
