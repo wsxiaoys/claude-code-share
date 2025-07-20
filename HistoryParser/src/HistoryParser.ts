@@ -140,7 +140,7 @@ export class HistoryParser {
   }
 
   private _parseUserMessage(
-    historyItem: any,
+    historyItem: ClaudeCodeMessage,
     nestedMessage: any
   ): UIMessage | null {
     if (typeof nestedMessage.content === "string") {
@@ -192,7 +192,7 @@ export class HistoryParser {
   }
 
   private _parseOtherMessageTypes(
-    historyItem: any,
+    historyItem: ClaudeCodeMessage,
     nestedMessage: any
   ): UIMessage | null {
     if (historyItem.type === "result" && "result" in nestedMessage) {
