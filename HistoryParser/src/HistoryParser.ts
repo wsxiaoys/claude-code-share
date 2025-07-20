@@ -24,10 +24,8 @@ export class HistoryParser {
         JSON.parse(line)
       );
 
-      const toolResultsMap = this._buildToolResultsMap(parsedData);
-
       const extractedMessages: UIMessage[] = parsedData
-        .map((item) => this._parseMessage(item, toolResultsMap))
+        .map((item, index) => this._parseMessage(item, parsedData, index))
         .filter((message): message is UIMessage => message !== null);
 
       return extractedMessages;
@@ -37,32 +35,10 @@ export class HistoryParser {
     }
   }
 
-  private _buildToolResultsMap(
-    parsedData: ClaudeCodeMessage[]
-  ): Map<string, any> {
-    const toolResultsMap = new Map<string, any>();
-    parsedData.forEach((item) => {
-      if (
-        item.message &&
-        typeof item.message === "object" &&
-        "role" in item.message &&
-        "content" in item.message &&
-        Array.isArray(item.message.content)
-      ) {
-        const content = item.message.content as any[];
-        content.forEach((c) => {
-          if (c.type === "tool_result" && c.tool_use_id) {
-            toolResultsMap.set(c.tool_use_id, c);
-          }
-        });
-      }
-    });
-    return toolResultsMap;
-  }
-
   private _parseMessage(
     item: ClaudeCodeMessage,
-    toolResultsMap: Map<string, any>
+    parsedData: ClaudeCodeMessage[],
+    index: number
   ): UIMessage | null {
     if (!item.message || typeof item.message !== "object") {
       return null;
@@ -83,7 +59,8 @@ export class HistoryParser {
           return this._parseAssistantMessage(
             historyItem,
             nestedMessage,
-            toolResultsMap
+            parsedData,
+            index
           );
         }
 
@@ -100,7 +77,8 @@ export class HistoryParser {
   private _parseAssistantMessage(
     historyItem: any,
     nestedMessage: any,
-    toolResultsMap: Map<string, any>
+    parsedData: ClaudeCodeMessage[],
+    index: number
   ): UIMessage {
     type ToolInvocationPart = {
       type: "tool-invocation";
@@ -116,7 +94,26 @@ export class HistoryParser {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
-          const toolResult = toolResultsMap.get(c.id);
+          let toolResult = null;
+          const nextItem = parsedData[index + 1];
+          if (
+            nextItem &&
+            nextItem.type === "user" &&
+            nextItem.message &&
+            typeof nextItem.message === "object" &&
+            "role" in nextItem.message &&
+            nextItem.message.role === "user" &&
+            Array.isArray(nextItem.message.content)
+          ) {
+            const toolResultContent = nextItem.message.content.find(
+              (contentPart: any) =>
+                contentPart.type === "tool_result" &&
+                contentPart.tool_use_id === c.id
+            );
+            if (toolResultContent) {
+              toolResult = toolResultContent;
+            }
+          }
 
           const toolInvocation: ToolInvocationPart = {
             type: "tool-invocation",
@@ -126,7 +123,7 @@ export class HistoryParser {
               toolName: c.name,
               args: c.input || {},
               ...(toolResult && {
-                result: toolResult.content || "",
+                result: (toolResult as any).content || "",
               }),
             } as ToolInvocation,
           };
@@ -164,6 +161,13 @@ export class HistoryParser {
     }
 
     if (Array.isArray(nestedMessage.content)) {
+      if (
+        nestedMessage.content.length === 1 &&
+        nestedMessage.content[0].type === "tool_result"
+      ) {
+        return null;
+      }
+
       const parts: TextPart[] = [];
       let textContent = "";
 
