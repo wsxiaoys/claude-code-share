@@ -11,15 +11,11 @@ type InitMessage = {
 };
 
 type AssistantMessage = {
-  // type: "assistant";
   message: Anthropic.Messages.Message;
-  // session_id: string;
 };
 
 type UserMessage = {
-  // type: "user";
-  message: MessageParam; // from Anthropic SDK
-  // session_id: string;
+  message: MessageParam;
 };
 
 type ErrorMessage = {
@@ -38,7 +34,6 @@ type ResultMessage = {
   session_id: string;
 };
 
-// Union type for all possible message types that can be nested
 type NestedMessage =
   | Anthropic.Messages.Message
   | MessageParam
@@ -48,7 +43,7 @@ type NestedMessage =
   | ErrorMessage
   | ResultMessage;
 
-// Claude Code history wrapper that contains different types of messages
+// Claude Code history type 
 type HistoryMessage = {
   parentUuid: string | null;
   isSidechain: boolean;
@@ -56,8 +51,9 @@ type HistoryMessage = {
   cwd: string;
   sessionId: string;
   version: string;
+  gitBranch?: string; // Added as it's present in some messages
   type: "user" | "assistant" | "system" | "error" | "result";
-  message: NestedMessage; // Can be any of the message types
+  message: NestedMessage;
   requestId?: string;
   uuid: string;
   timestamp: string;
