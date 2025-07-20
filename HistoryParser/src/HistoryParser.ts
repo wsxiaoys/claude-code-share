@@ -80,9 +80,7 @@ export class HistoryParser {
     const parts: (TextPart | ToolInvocationPart)[] = [];
     let textContent = "";
 
-    if (typeof nestedMessage.content === "string") {
-      textContent = nestedMessage.content;
-    } else if (Array.isArray(nestedMessage.content)) {
+    if (Array.isArray(nestedMessage.content)) {
       nestedMessage.content.forEach((c: any) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
@@ -136,6 +134,7 @@ export class HistoryParser {
       id: historyItem.uuid,
       role: "assistant",
       content: textContent || "",
+      createdAt: new Date(historyItem.timestamp),
       ...(parts.length > 0 && { parts }),
     } as UIMessage;
   }
