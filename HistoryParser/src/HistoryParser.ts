@@ -2,6 +2,7 @@ import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
 import { type ClaudeCodeMessage } from "./types/claude_code_types";
 import fs from "fs";
 import type { ToolInvocationPart } from "./types/UiMessage_type";
+import type { ServerTools, ToolInvocationUIPart } from "@getpochi/tools";
 
 /**
  * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
@@ -136,19 +137,7 @@ export class HistoryParser {
             }
           }
 
-          // Create tool invocation part
-          const toolInvocation: ToolInvocationPart = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: toolResult ? "result" : "call",
-              toolCallId: c.id,
-              toolName: c.name,
-              args: c.input || {},
-              ...(toolResult && {
-                result: { output: (toolResult as any).content || "" },
-              }),
-            } as ToolInvocation,
-          };
+          const toolInvocation = this._createToolInvocation(c, toolResult);
           parts.push(toolInvocation);
         }
       });
@@ -169,6 +158,75 @@ export class HistoryParser {
       createdAt: new Date(historyItem.timestamp),
       ...(parts.length > 0 && { parts }),
     } as UIMessage;
+  }
+
+  /**
+   * Creates a tool invocation part from a Claude tool call.
+   * @param c The tool call object from Claude's message.
+   * @param toolResult The corresponding tool result object.
+   * @returns A ToolInvocationPart object.
+   */
+  private _createToolInvocation(c: any, toolResult: any): ToolInvocationPart {
+    // Convert Claude tool calls to Pochi format
+    switch (c.name) {
+      case "WebFetch": {
+        const toolName = "webFetch";
+        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
+        if (toolResult) {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "result",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+              result: {
+                result: (toolResult as any).content || "",
+                isTruncated: false,
+              },
+            },
+          };
+        } else {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "call",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+            },
+          };
+        }
+        return invocation;
+      }
+      // Add more tool mappings here
+      default: {
+        let invocation: ToolInvocationPart;
+        if (toolResult) {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "result",
+              toolCallId: c.id,
+              toolName: c.name,
+              args: c.input || {},
+              result: { output: (toolResult as any).content || "" },
+            },
+          };
+        } else {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "call",
+              toolCallId: c.id,
+              toolName: c.name,
+              args: c.input || {},
+            },
+          };
+        }
+        return invocation;
+      }
+    }
   }
 
   /**
