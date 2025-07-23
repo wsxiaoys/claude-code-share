@@ -145,7 +145,7 @@ export class HistoryParser {
               toolName: c.name,
               args: c.input || {},
               ...(toolResult && {
-                result: (toolResult as any).content || "",
+                result: { output: (toolResult as any).content || "" },
               }),
             } as ToolInvocation,
           };
