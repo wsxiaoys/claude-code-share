@@ -2,7 +2,11 @@ import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
 import { type ClaudeCodeMessage } from "./types/claude_code_types";
 import fs from "fs";
 import type { ToolInvocationPart } from "./types/UiMessage_type";
-import type { ServerTools, ToolInvocationUIPart } from "@getpochi/tools";
+import type {
+  ServerTools,
+  ClientToolsType,
+  ToolInvocationUIPart,
+} from "@getpochi/tools";
 
 /**
  * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
@@ -110,7 +114,7 @@ export class HistoryParser {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
-          let toolResult = null;
+          let toolResultItem: ClaudeCodeMessage | null = null;
           // Look ahead through all subsequent messages to find tool result
           // Claude may make multiple tool calls before returning results
           for (let i = index + 1; i < parsedData.length; i++) {
@@ -131,13 +135,13 @@ export class HistoryParser {
                   contentPart.tool_use_id === c.id
               );
               if (toolResultContent) {
-                toolResult = toolResultContent;
+                toolResultItem = futureItem; // Store the whole item
                 break; // Found the result, stop searching
               }
             }
           }
 
-          const toolInvocation = this._createToolInvocation(c, toolResult);
+          const toolInvocation = this._createToolInvocation(c, toolResultItem);
           parts.push(toolInvocation);
         }
       });
@@ -166,13 +170,16 @@ export class HistoryParser {
    * @param toolResult The corresponding tool result object.
    * @returns A ToolInvocationPart object.
    */
-  private _createToolInvocation(c: any, toolResult: any): ToolInvocationPart {
+  private _createToolInvocation(
+    c: any,
+    toolResultItem: any
+  ): ToolInvocationPart {
     // Convert Claude tool calls to Pochi format
     switch (c.name) {
-      case "WebFetch": {
-        const toolName = "webFetch";
-        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
-        if (toolResult) {
+      case "LS": {
+        const toolName = "listFiles";
+        let invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]>;
+        if (toolResultItem) {
           invocation = {
             type: "tool-invocation",
             toolInvocation: {
@@ -181,7 +188,68 @@ export class HistoryParser {
               toolName,
               args: c.input || {},
               result: {
-                result: (toolResult as any).content || "",
+                files: ((toolResultItem as any).toolUseResult || "").split(
+                  "\n"
+                ),
+                isTruncated: false,
+              },
+            },
+          };
+        } else {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "call",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+            },
+          };
+        }
+        return invocation;
+      }
+      case "TodoWrite": {
+        const toolName = "todoWrite";
+        let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
+        if (toolResultItem) {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "result",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+              result: {
+                success: true,
+              },
+            },
+          };
+        } else {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "call",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+            },
+          };
+        }
+        return invocation;
+      }
+      case "WebFetch": {
+        const toolName = "webFetch";
+        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
+        if (toolResultItem) {
+          invocation = {
+            type: "tool-invocation",
+            toolInvocation: {
+              state: "result",
+              toolCallId: c.id,
+              toolName,
+              args: c.input || {},
+              result: {
+                result: (toolResultItem as any).toolUseResult || "",
                 isTruncated: false,
               },
             },
@@ -202,7 +270,7 @@ export class HistoryParser {
       // Add more tool mappings here
       default: {
         let invocation: ToolInvocationPart;
-        if (toolResult) {
+        if (toolResultItem) {
           invocation = {
             type: "tool-invocation",
             toolInvocation: {
@@ -210,7 +278,7 @@ export class HistoryParser {
               toolCallId: c.id,
               toolName: c.name,
               args: c.input || {},
-              result: { output: (toolResult as any).content || "" },
+              result: { output: (toolResultItem as any).toolUseResult || "" },
             },
           };
         } else {
