@@ -2,11 +2,7 @@ import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
 import { type ClaudeCodeMessage } from "./types/claude_code_types";
 import fs from "fs";
 import type { ToolInvocationPart } from "./types/UiMessage_type";
-import type {
-  ServerTools,
-  ClientToolsType,
-  ToolInvocationUIPart,
-} from "@getpochi/tools";
+import { _createToolInvocation } from "./tool_type_convert";
 
 /**
  * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
@@ -141,7 +137,7 @@ export class HistoryParser {
             }
           }
 
-          const toolInvocation = this._createToolInvocation(c, toolResultItem);
+          const toolInvocation = _createToolInvocation(c, toolResultItem);
           parts.push(toolInvocation);
         }
       });
@@ -162,113 +158,6 @@ export class HistoryParser {
       createdAt: new Date(historyItem.timestamp),
       ...(parts.length > 0 && { parts }),
     } as UIMessage;
-  }
-
-  /**
-   * Creates a tool invocation part from a Claude tool call.
-   * @param c The tool call object from Claude's message.
-   * @param toolResult The corresponding tool result object.
-   * @returns A ToolInvocationPart object.
-   */
-  private _createToolInvocation(
-    c: any,
-    toolResultItem: any
-  ): ToolInvocationPart {
-    // Helper function to create call state invocation
-    const createCallInvocation = (toolName: string): ToolInvocationPart => ({
-      type: "tool-invocation",
-      toolInvocation: {
-        state: "call",
-        toolCallId: c.id,
-        toolName,
-        args: c.input || {},
-      },
-    });
-
-    // Convert Claude tool calls to Pochi format
-    switch (c.name) {
-      case "LS": {
-        const toolName = "listFiles";
-        let invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]>;
-        if (toolResultItem) {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "result",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-              result: {
-                files: ((toolResultItem as any).toolUseResult || "").split(
-                  "\n"
-                ),
-                isTruncated: false,
-              },
-            },
-          };
-
-          return invocation;
-        }
-        return createCallInvocation(toolName);
-      }
-      case "TodoWrite": {
-        const toolName = "todoWrite";
-        let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
-        if (toolResultItem) {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "result",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-              result: {
-                success: true,
-              },
-            },
-          };
-          return invocation;
-        }
-        return createCallInvocation(toolName);
-      }
-      case "WebFetch": {
-        const toolName = "webFetch";
-        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
-        if (toolResultItem) {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "result",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-              result: {
-                result: (toolResultItem as any).toolUseResult || "",
-                isTruncated: false,
-              },
-            },
-          };
-          return invocation;
-        }
-        return createCallInvocation(toolName);
-      }
-      // Add more tool mappings here
-      default: {
-        if (toolResultItem) {
-          return {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "result",
-              toolCallId: c.id,
-              toolName: c.name,
-              args: c.input || {},
-              result: { output: (toolResultItem as any).toolUseResult || "" },
-            },
-          };
-        }
-        return createCallInvocation(c.name);
-      }
-    }
   }
 
   /**
