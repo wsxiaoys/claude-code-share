@@ -189,8 +189,9 @@ export class HistoryParser {
     switch (c.name) {
       case "LS": {
         const toolName = "listFiles";
+        let invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]>;
         if (toolResultItem) {
-          return {
+          invocation = {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -205,13 +206,16 @@ export class HistoryParser {
               },
             },
           };
+
+          return invocation;
         }
         return createCallInvocation(toolName);
       }
       case "TodoWrite": {
         const toolName = "todoWrite";
+        let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
         if (toolResultItem) {
-          return {
+          invocation = {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -223,13 +227,15 @@ export class HistoryParser {
               },
             },
           };
+          return invocation;
         }
         return createCallInvocation(toolName);
       }
       case "WebFetch": {
         const toolName = "webFetch";
+        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
         if (toolResultItem) {
-          return {
+          invocation = {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -242,6 +248,7 @@ export class HistoryParser {
               },
             },
           };
+          return invocation;
         }
         return createCallInvocation(toolName);
       }
