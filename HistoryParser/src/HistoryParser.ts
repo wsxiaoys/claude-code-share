@@ -1,6 +1,7 @@
 import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
-import { type ClaudeCodeMessage } from "./types";
+import { type ClaudeCodeMessage } from "./types/claude_code_types";
 import fs from "fs";
+import type { ToolInvocationPart } from "./types/UiMessage_type";
 
 /**
  * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
@@ -99,10 +100,6 @@ export class HistoryParser {
     parsedData: ClaudeCodeMessage[],
     index: number
   ): UIMessage {
-    type ToolInvocationPart = {
-      type: "tool-invocation";
-      toolInvocation: ToolInvocation;
-    };
     const parts: (TextPart | ToolInvocationPart)[] = [];
     let textContent = "";
 
