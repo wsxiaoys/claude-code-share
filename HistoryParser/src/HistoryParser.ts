@@ -174,13 +174,23 @@ export class HistoryParser {
     c: any,
     toolResultItem: any
   ): ToolInvocationPart {
+    // Helper function to create call state invocation
+    const createCallInvocation = (toolName: string): ToolInvocationPart => ({
+      type: "tool-invocation",
+      toolInvocation: {
+        state: "call",
+        toolCallId: c.id,
+        toolName,
+        args: c.input || {},
+      },
+    });
+
     // Convert Claude tool calls to Pochi format
     switch (c.name) {
       case "LS": {
         const toolName = "listFiles";
-        let invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]>;
         if (toolResultItem) {
-          invocation = {
+          return {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -195,24 +205,13 @@ export class HistoryParser {
               },
             },
           };
-        } else {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "call",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-            },
-          };
         }
-        return invocation;
+        return createCallInvocation(toolName);
       }
       case "TodoWrite": {
         const toolName = "todoWrite";
-        let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
         if (toolResultItem) {
-          invocation = {
+          return {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -224,24 +223,13 @@ export class HistoryParser {
               },
             },
           };
-        } else {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "call",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-            },
-          };
         }
-        return invocation;
+        return createCallInvocation(toolName);
       }
       case "WebFetch": {
         const toolName = "webFetch";
-        let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
         if (toolResultItem) {
-          invocation = {
+          return {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -254,24 +242,13 @@ export class HistoryParser {
               },
             },
           };
-        } else {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "call",
-              toolCallId: c.id,
-              toolName,
-              args: c.input || {},
-            },
-          };
         }
-        return invocation;
+        return createCallInvocation(toolName);
       }
       // Add more tool mappings here
       default: {
-        let invocation: ToolInvocationPart;
         if (toolResultItem) {
-          invocation = {
+          return {
             type: "tool-invocation",
             toolInvocation: {
               state: "result",
@@ -281,18 +258,8 @@ export class HistoryParser {
               result: { output: (toolResultItem as any).toolUseResult || "" },
             },
           };
-        } else {
-          invocation = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: "call",
-              toolCallId: c.id,
-              toolName: c.name,
-              args: c.input || {},
-            },
-          };
         }
-        return invocation;
+        return createCallInvocation(c.name);
       }
     }
   }
