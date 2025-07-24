@@ -95,6 +95,18 @@ export function _createToolInvocation(
       const toolName = "executeCommand";
       let invocation: ToolInvocationUIPart<ClientToolsType["executeCommand"]>;
       if (toolResultItem) {
+        let result;
+
+        const item = toolResultItem.message.content[0];
+        const content = item.content;
+        const isError = item.is_error;
+
+        if (isError) {
+          result = (toolResultItem as any).toolUseResult;
+        } else {
+          result = (toolResultItem as any).toolUseResult.stdout;
+        }
+
         invocation = {
           type: "tool-invocation",
           toolInvocation: {
@@ -103,7 +115,7 @@ export function _createToolInvocation(
             toolName,
             args: c.input || {},
             result: {
-              output: (toolResultItem as any).toolUseResult || "",
+              output: result || "",
               isTruncated: false,
             },
           },
