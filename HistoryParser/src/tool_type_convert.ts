@@ -50,26 +50,6 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
-    // case "TodoWrite": {
-    //   const toolName = "todoWrite";
-    //   let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
-    //   if (toolResultItem) {
-    //     invocation = {
-    //       type: "tool-invocation",
-    //       toolInvocation: {
-    //         state: "result",
-    //         toolCallId: c.id,
-    //         toolName,
-    //         args: c.input || {},
-    //         result: {
-    //           success: true,
-    //         },
-    //       },
-    //     };
-    //     return invocation;
-    //   }
-    //   return createCallInvocation(toolName);
-    // }
     case "Glob": {
       const toolName = "globFiles";
       let invocation: ToolInvocationUIPart<ClientToolsType["globFiles"]>;
@@ -108,6 +88,64 @@ export function _createToolInvocation(
               result: (toolResultItem as any).toolUseResult || "",
               isTruncated: false,
             },
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
+    case "Edit": {
+      const toolName = "applyDiff";
+      let invocation: ToolInvocationUIPart<ClientToolsType["applyDiff"]>;
+      if (toolResultItem) {
+        const input = c.input;
+        const path = input.file_path;
+        const searchContent = input.old_string;
+        const replaceContent = input.new_string;
+
+        // result
+        const toolResult = toolResultItem.toolUseResult;
+        let success = false;
+        let added: number = 0;
+        let removed: number = 0;
+        if (toolResult != null) {
+          success = true;
+          ({ added, removed } = (
+            toolResult.structuredPatch?.[0]?.lines || []
+          ).reduce(
+            (summary: { added: number; removed: number }, line: string) => {
+              if (line.startsWith("+")) {
+                summary.added++;
+              }
+              if (line.startsWith("-")) {
+                summary.removed++;
+              }
+              return summary;
+            },
+            { added: 0, removed: 0 }
+          ));
+        } else {
+          success = false;
+        }
+
+        const result = {
+          success,
+          _meta: {
+            editSummary: {
+              added,
+              removed,
+            },
+          },
+        };
+
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: { path, searchContent, replaceContent },
+            result: result,
           },
         };
         return invocation;
