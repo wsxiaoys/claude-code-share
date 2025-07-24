@@ -91,6 +91,27 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
+    case "Bash": {
+      const toolName = "executeCommand";
+      let invocation: ToolInvocationUIPart<ClientToolsType["executeCommand"]>;
+      if (toolResultItem) {
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: c.input || {},
+            result: {
+              output: (toolResultItem as any).toolUseResult || "",
+              isTruncated: false,
+            },
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     // Add more tool mappings here
     default: {
       if (toolResultItem) {
