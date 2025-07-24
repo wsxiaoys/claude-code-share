@@ -127,6 +127,32 @@ export function _createToolInvocation(
     //   }
     //   return createCallInvocation(toolName);
     // }
+    case "Task": {
+      const toolName = "newTask";
+      let invocation: ToolInvocationUIPart<ClientToolsType["newTask"]>;
+      if (toolResultItem) {
+        const input = c.input;
+        const description = input.description;
+        const prompt = input.prompt;
+
+        //result
+        const result = (toolResultItem as any).toolUseResult;
+        const content = result.content.text;
+
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: { description, prompt },
+            result: content,
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     case "Read": {
       const toolName = "readFile";
       let invocation: ToolInvocationUIPart<ClientToolsType["readFile"]>;
