@@ -98,7 +98,6 @@ export function _createToolInvocation(
         let result;
 
         const item = toolResultItem.message.content[0];
-        const content = item.content;
         const isError = item.is_error;
 
         if (isError) {
