@@ -50,9 +50,31 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
-    case "TodoWrite": {
-      const toolName = "todoWrite";
-      let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
+    // case "TodoWrite": {
+    //   const toolName = "todoWrite";
+    //   let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
+    //   if (toolResultItem) {
+    //     invocation = {
+    //       type: "tool-invocation",
+    //       toolInvocation: {
+    //         state: "result",
+    //         toolCallId: c.id,
+    //         toolName,
+    //         args: c.input || {},
+    //         result: {
+    //           success: true,
+    //         },
+    //       },
+    //     };
+    //     return invocation;
+    //   }
+    //   return createCallInvocation(toolName);
+    // }
+    case "Glob": {
+      const toolName = "globFiles";
+      let invocation: ToolInvocationUIPart<ClientToolsType["globFiles"]>;
+      const globPattern: string = c.input?.pattern;
+      const path: string = c.input?.path;
       if (toolResultItem) {
         invocation = {
           type: "tool-invocation",
@@ -60,9 +82,10 @@ export function _createToolInvocation(
             state: "result",
             toolCallId: c.id,
             toolName,
-            args: c.input || {},
+            args: { globPattern: globPattern, path: path },
             result: {
-              success: true,
+              files: (toolResultItem as any).toolUseResult.filenames || "",
+              isTruncated: false,
             },
           },
         };
