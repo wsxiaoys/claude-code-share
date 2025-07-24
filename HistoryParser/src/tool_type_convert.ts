@@ -94,6 +94,69 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
+    // claude code format is too different do it later
+    // case "Grep": {
+    //   const toolName = "searchFiles";
+    //   let invocation: ToolInvocationUIPart<ClientToolsType["searchFiles"]>;
+    //   if (toolResultItem) {
+    //     const result = (toolResultItem as any).toolUseResult;
+    //     const input = c.input;
+    //     const path = input.path;
+    //     const regex = input.pattern;
+    //     const filePattern = input.include;
+
+    //     //result
+    //     const file;
+    //     const line;
+    //     const context;
+
+    //     invocation = {
+    //       type: "tool-invocation",
+    //       toolInvocation: {
+    //         state: "result",
+    //         toolCallId: c.id,
+    //         toolName,
+    //         args: { path, regex, filePattern },
+    //         result: {
+    //           result: (toolResultItem as any).toolUseResult || "",
+    //           isTruncated: false,
+    //         },
+    //       },
+    //     };
+    //     return invocation;
+    //   }
+    //   return createCallInvocation(toolName);
+    // }
+    case "Read": {
+      const toolName = "readFile";
+      let invocation: ToolInvocationUIPart<ClientToolsType["readFile"]>;
+      if (toolResultItem) {
+        const input = c.input;
+        const path = input.file_path;
+        const startLine = input.offset;
+        const endLine = input.limit;
+
+        //result
+        const result = (toolResultItem as any).toolUseResult;
+        const content = result.file.content;
+
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: { path, startLine, endLine },
+            result: {
+              content: content || "",
+              isTruncated: false,
+            },
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     case "Edit": {
       const toolName = "applyDiff";
       let invocation: ToolInvocationUIPart<ClientToolsType["applyDiff"]>;
