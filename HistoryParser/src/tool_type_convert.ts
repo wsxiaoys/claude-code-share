@@ -137,7 +137,7 @@ export function _createToolInvocation(
 
         //result
         const result = (toolResultItem as any).toolUseResult;
-        const content = result.content.text;
+        const content = result.content[0].text;
 
         invocation = {
           type: "tool-invocation",
