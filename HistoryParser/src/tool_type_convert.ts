@@ -104,6 +104,26 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
+    case "TodoWrite": {
+      const toolName = "todoWrite";
+      let invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]>;
+      if (toolResultItem) {
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: c.input || {},
+            result: {
+              success: true,
+            },
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     case "WebFetch": {
       const toolName = "webFetch";
       let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
