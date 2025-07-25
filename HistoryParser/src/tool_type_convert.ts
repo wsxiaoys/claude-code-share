@@ -50,6 +50,33 @@ export function _createToolInvocation(
       }
       return createCallInvocation(toolName);
     }
+    case "Write": {
+      const toolName = "writeToFile";
+      let invocation: ToolInvocationUIPart<ClientToolsType["writeToFile"]>;
+      if (toolResultItem) {
+        const input = c.input;
+        const content = input.content;
+        const path = input.file_path;
+
+        // result
+        const success = true;
+
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: { content, path },
+            result: {
+              success,
+            },
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     case "Glob": {
       const toolName = "globFiles";
       let invocation: ToolInvocationUIPart<ClientToolsType["globFiles"]>;
