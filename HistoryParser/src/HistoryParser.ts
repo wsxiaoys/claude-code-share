@@ -1,5 +1,8 @@
-import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
-import { type ClaudeCodeMessage } from "./types/claude_code_types";
+import { type UIMessage, type TextPart } from "ai";
+import {
+  type ClaudeCodeMessage,
+  type NestedMessage,
+} from "./types/claude_code_types";
 import fs from "fs";
 import type { ToolInvocationPart } from "./types/UiMessage_type";
 import { _createToolInvocation } from "./tool_type_convert";
@@ -65,7 +68,7 @@ export class HistoryParser {
     }
 
     if ("uuid" in item) {
-      const nestedMessage = item.message as any;
+      const nestedMessage = item.message as NestedMessage;
 
       if ("role" in nestedMessage && "content" in nestedMessage) {
         if (item.type === "assistant" && nestedMessage.role === "assistant") {
@@ -97,7 +100,7 @@ export class HistoryParser {
    */
   private _parseAssistantMessage(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: any,
+    nestedMessage: NestedMessage,
     parsedData: ClaudeCodeMessage[],
     index: number
   ): UIMessage {
@@ -105,7 +108,7 @@ export class HistoryParser {
     let textContent = "";
 
     // Process array content for assistant
-    if (Array.isArray(nestedMessage.content)) {
+    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
       nestedMessage.content.forEach((c: any) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
@@ -168,10 +171,13 @@ export class HistoryParser {
    */
   private _parseUserMessage(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: any
+    nestedMessage: NestedMessage
   ): UIMessage | null {
     // Handle string content directly
-    if (typeof nestedMessage.content === "string") {
+    if (
+      "content" in nestedMessage &&
+      typeof nestedMessage.content === "string"
+    ) {
       return {
         id: historyItem.uuid,
         role: "user",
@@ -182,11 +188,11 @@ export class HistoryParser {
     }
 
     // Handle array content
-    if (Array.isArray(nestedMessage.content)) {
+    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
       // Skip if only tool result
       if (
         nestedMessage.content.length === 1 &&
-        nestedMessage.content[0].type === "tool_result"
+        nestedMessage.content[0]?.type === "tool_result"
       ) {
         return null;
       }
@@ -232,7 +238,7 @@ export class HistoryParser {
    */
   private _parseOtherMessageTypes(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: any
+    nestedMessage: NestedMessage
   ): UIMessage | null {
     // Handle result type
     if (historyItem.type === "result" && "result" in nestedMessage) {
@@ -257,10 +263,14 @@ export class HistoryParser {
     }
 
     // Handle system init
-    if (historyItem.type === "system" && nestedMessage.subtype === "init") {
-      const content = `[Session initialized with tools: ${
-        nestedMessage.tools?.join(", ") || "none"
-      }]`;
+    if (
+      historyItem.type === "system" &&
+      "subtype" in nestedMessage &&
+      nestedMessage.subtype === "init"
+    ) {
+      const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
+        ", "
+      )}]`;
       return {
         id: historyItem.uuid,
         role: "system",
