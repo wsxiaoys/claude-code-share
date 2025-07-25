@@ -6,6 +6,60 @@ export interface ClaudeToolCall {
   input: unknown;
 }
 
+// Specific tool call types for better type safety
+export interface LSToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "LS";
+  input: LSToolInput;
+}
+
+export interface WriteToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Write";
+  input: WriteToolInput;
+}
+
+export interface GlobToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Glob";
+  input: GlobToolInput;
+}
+
+export interface ReadToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Read";
+  input: ReadToolInput;
+}
+
+export interface EditToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Edit";
+  input: EditToolInput;
+}
+
+export interface MultiEditToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "MultiEdit";
+  input: MultiEditToolInput;
+}
+
+export interface TaskToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Task";
+  input: TaskToolInput;
+}
+
+export interface WebFetchToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "WebFetch";
+  input: WebFetchToolInput;
+}
+
+export interface BashToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Bash";
+  input: BashToolInput;
+}
+
+export interface TodoWriteToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "TodoWrite";
+  input: TodoWriteToolInput;
+}
+
 export interface ClaudeToolResult {
   toolUseResult: unknown;
   message?: {
@@ -64,13 +118,28 @@ export interface BashToolInput {
   [key: string]: unknown;
 }
 
+export interface TodoWriteToolInput {
+  todos: Array<{
+    status: "pending" | "in-progress" | "completed" | "cancelled";
+    content: string;
+    id: string;
+    priority: "low" | "medium" | "high";
+  }>;
+}
+
 // Specific result types for different Claude tools
 export interface LSToolResult {
   toolUseResult: string;
 }
 
 export interface WriteToolResult {
-  toolUseResult: unknown;
+  toolUseResult:
+    | {
+        success: boolean;
+        file_path?: string;
+        bytes_written?: number;
+      }
+    | string;
 }
 
 export interface GlobToolResult {
@@ -131,7 +200,11 @@ export interface BashToolResult {
 }
 
 export interface TodoWriteToolResult {
-  toolUseResult: unknown;
+  toolUseResult:
+    | {
+        success: boolean;
+      }
+    | string;
 }
 
 // Union types for type-safe handling
@@ -145,6 +218,7 @@ export type ClaudeToolInput =
   | TaskToolInput
   | WebFetchToolInput
   | BashToolInput
+  | TodoWriteToolInput
   | unknown;
 
 export type ClaudeToolResultType =
@@ -159,3 +233,16 @@ export type ClaudeToolResultType =
   | BashToolResult
   | TodoWriteToolResult
   | ClaudeToolResult;
+
+// Union type for all specific tool calls
+export type SpecificClaudeToolCall =
+  | LSToolCall
+  | WriteToolCall
+  | GlobToolCall
+  | ReadToolCall
+  | EditToolCall
+  | MultiEditToolCall
+  | TaskToolCall
+  | WebFetchToolCall
+  | BashToolCall
+  | TodoWriteToolCall;

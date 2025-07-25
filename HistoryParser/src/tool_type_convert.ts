@@ -6,6 +6,26 @@ import type {
 import type { ToolInvocationPart } from "./types/UiMessage_type";
 import type {
   ClaudeToolCall,
+  LSToolCall,
+  WriteToolCall,
+  GlobToolCall,
+  ReadToolCall,
+  EditToolCall,
+  MultiEditToolCall,
+  TaskToolCall,
+  WebFetchToolCall,
+  BashToolCall,
+  TodoWriteToolCall,
+  LSToolInput,
+  WriteToolInput,
+  GlobToolInput,
+  ReadToolInput,
+  EditToolInput,
+  MultiEditToolInput,
+  TaskToolInput,
+  WebFetchToolInput,
+  BashToolInput,
+  TodoWriteToolInput,
   LSToolResult,
   WriteToolResult,
   GlobToolResult,
@@ -36,49 +56,89 @@ export function _createToolInvocation(
       state: "call",
       toolCallId: c.id,
       toolName,
-      args: { todos: [] },
+      args: {},
     },
   });
 
   // Convert Claude tool calls to Pochi format
   if (c.name === "LS") {
-    return handleListFiles(c, toolResultItem, createCallInvocation);
+    return handleListFiles(
+      c as LSToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Write") {
-    return handleWriteToFile(c, toolResultItem, createCallInvocation);
+    return handleWriteToFile(
+      c as WriteToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Glob") {
-    return handleGlobFiles(c, toolResultItem, createCallInvocation);
+    return handleGlobFiles(
+      c as GlobToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "TodoWrite") {
-    return handleTodoWrite(c, toolResultItem, createCallInvocation);
+    return handleTodoWrite(
+      c as TodoWriteToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "WebFetch") {
-    return handleWebFetch(c, toolResultItem, createCallInvocation);
+    return handleWebFetch(
+      c as WebFetchToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "MultiEdit") {
-    return handleMultiEdit(c, toolResultItem, createCallInvocation);
+    return handleMultiEdit(
+      c as MultiEditToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Task") {
-    return handleNewTask(c, toolResultItem, createCallInvocation);
+    return handleNewTask(
+      c as TaskToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Read") {
-    return handleReadFile(c, toolResultItem, createCallInvocation);
+    return handleReadFile(
+      c as ReadToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Edit") {
-    return handleApplyDiff(c, toolResultItem, createCallInvocation);
+    return handleApplyDiff(
+      c as EditToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   if (c.name === "Bash") {
-    return handleExecuteCommand(c, toolResultItem, createCallInvocation);
+    return handleExecuteCommand(
+      c as BashToolCall,
+      toolResultItem,
+      createCallInvocation
+    );
   }
 
   // Default handler for unknown tools
@@ -97,7 +157,7 @@ function handleListFiles(
     return createCallInvocation(toolName);
   }
 
-  const { path } = c.input as { path: string };
+  const { path } = c.input as LSToolInput;
   const invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]> = {
     type: "tool-invocation",
     toolInvocation: {
@@ -128,10 +188,19 @@ function handleWriteToFile(
     return createCallInvocation(toolName);
   }
 
-  const { content, file_path: path } = c.input as {
-    content: string;
-    file_path: string;
-  };
+  const { content, file_path: path } = c.input as WriteToolInput;
+  const toolResult = (toolResultItem as WriteToolResult).toolUseResult;
+
+  // Extract success status from result
+  let success = true;
+  if (
+    typeof toolResult === "object" &&
+    toolResult !== null &&
+    "success" in toolResult
+  ) {
+    success = toolResult.success;
+  }
+
   const invocation: ToolInvocationUIPart<ClientToolsType["writeToFile"]> = {
     type: "tool-invocation",
     toolInvocation: {
@@ -140,7 +209,7 @@ function handleWriteToFile(
       toolName,
       args: { content, path },
       result: {
-        success: true,
+        success,
       },
     },
   };
@@ -159,10 +228,7 @@ function handleGlobFiles(
     return createCallInvocation(toolName);
   }
 
-  const { pattern: globPattern, path } = c.input as {
-    pattern: string;
-    path: string;
-  };
+  const { pattern: globPattern, path } = c.input as GlobToolInput;
   const invocation: ToolInvocationUIPart<ClientToolsType["globFiles"]> = {
     type: "tool-invocation",
     toolInvocation: {
@@ -191,15 +257,26 @@ function handleTodoWrite(
     return createCallInvocation(toolName);
   }
 
+  const { todos } = c.input as TodoWriteToolInput;
+  const toolResult = (toolResultItem as TodoWriteToolResult).toolUseResult;
+
+  // Extract success status and additional info from result
+  let success = true;
+  if (typeof toolResult === "object" && toolResult !== null) {
+    if ("success" in toolResult) {
+      success = toolResult.success;
+    }
+  }
+
   const invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]> = {
     type: "tool-invocation",
     toolInvocation: {
       state: "result",
       toolCallId: c.id,
       toolName,
-      args: { todos: [] },
+      args: { todos: todos || [] },
       result: {
-        success: true,
+        success,
       },
     },
   };
@@ -218,7 +295,7 @@ function handleWebFetch(
     return createCallInvocation(toolName);
   }
 
-  const { url } = c.input as { url: string };
+  const { url } = c.input as WebFetchToolInput;
   const result =
     (toolResultItem as WebFetchToolResult).toolUseResult.result || "";
   const invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]> = {
@@ -249,10 +326,7 @@ function handleMultiEdit(
     return createCallInvocation(toolName);
   }
 
-  const { file_path: path, edits } = c.input as {
-    file_path: string;
-    edits: Array<{ old_string: string; new_string: string }>;
-  };
+  const { file_path: path, edits } = c.input as MultiEditToolInput;
   const formattedEdits = edits.map((edit) => ({
     searchContent: edit.old_string,
     replaceContent: edit.new_string,
@@ -305,10 +379,7 @@ function handleNewTask(
     return createCallInvocation(toolName);
   }
 
-  const { description, prompt } = c.input as {
-    description: string;
-    prompt: string;
-  };
+  const { description, prompt } = c.input as TaskToolInput;
   const result = (toolResultItem as TaskToolResult).toolUseResult;
   const content = result.content?.[0]?.text || "";
 
@@ -341,7 +412,7 @@ function handleReadFile(
     file_path: path,
     offset: startLine,
     limit: endLine,
-  } = c.input as { file_path: string; offset?: number; limit?: number };
+  } = c.input as ReadToolInput;
   const result = (toolResultItem as ReadToolResult).toolUseResult;
   const content = result.file.content;
 
@@ -377,7 +448,7 @@ function handleApplyDiff(
     file_path: path,
     old_string: searchContent,
     new_string: replaceContent,
-  } = c.input as { file_path: string; old_string: string; new_string: string };
+  } = c.input as EditToolInput;
   const toolResult = (toolResultItem as EditToolResult).toolUseResult;
 
   let success = false;
@@ -456,7 +527,7 @@ function handleExecuteCommand(
       state: "result",
       toolCallId: c.id,
       toolName,
-      args: { command: (c.input as { command?: string })?.command || "" },
+      args: { command: (c.input as BashToolInput)?.command || "" },
       result: {
         output: result || "",
         isTruncated: false,
