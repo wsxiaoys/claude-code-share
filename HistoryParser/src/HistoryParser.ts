@@ -1,6 +1,8 @@
 import { type UIMessage, type TextPart, type ToolInvocation } from "ai";
-import { type ClaudeCodeMessage } from "./types";
+import { type ClaudeCodeMessage } from "./types/claude_code_types";
 import fs from "fs";
+import type { ToolInvocationPart } from "./types/UiMessage_type";
+import { _createToolInvocation } from "./tool_type_convert";
 
 /**
  * This class is used to parse the Claude Code history file and convert it to a format that can be used by the AI SDK.
@@ -99,10 +101,6 @@ export class HistoryParser {
     parsedData: ClaudeCodeMessage[],
     index: number
   ): UIMessage {
-    type ToolInvocationPart = {
-      type: "tool-invocation";
-      toolInvocation: ToolInvocation;
-    };
     const parts: (TextPart | ToolInvocationPart)[] = [];
     let textContent = "";
 
@@ -112,7 +110,7 @@ export class HistoryParser {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
-          let toolResult = null;
+          let toolResultItem: ClaudeCodeMessage | null = null;
           // Look ahead through all subsequent messages to find tool result
           // Claude may make multiple tool calls before returning results
           for (let i = index + 1; i < parsedData.length; i++) {
@@ -133,25 +131,13 @@ export class HistoryParser {
                   contentPart.tool_use_id === c.id
               );
               if (toolResultContent) {
-                toolResult = toolResultContent;
+                toolResultItem = futureItem; // Store the whole item
                 break; // Found the result, stop searching
               }
             }
           }
 
-          // Create tool invocation part
-          const toolInvocation: ToolInvocationPart = {
-            type: "tool-invocation",
-            toolInvocation: {
-              state: toolResult ? "result" : "call",
-              toolCallId: c.id,
-              toolName: c.name,
-              args: c.input || {},
-              ...(toolResult && {
-                result: (toolResult as any).content || "",
-              }),
-            } as ToolInvocation,
-          };
+          const toolInvocation = _createToolInvocation(c, toolResultItem);
           parts.push(toolInvocation);
         }
       });

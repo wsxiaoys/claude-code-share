@@ -2,6 +2,8 @@
 
 Claude code history should be located at your users .claude/projects/
 
+Claude code tools: https://docs.anthropic.com/en/docs/claude-code/settings#tools-available-to-claude
+
 ## Get started
 
 1. bun install
