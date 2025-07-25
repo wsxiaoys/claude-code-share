@@ -32,15 +32,19 @@ export function _createToolInvocation(
       const toolName = "listFiles";
       let invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]>;
       if (toolResultItem) {
+        const input = c.input;
+        const path = input.path;
         invocation = {
           type: "tool-invocation",
           toolInvocation: {
             state: "result",
             toolCallId: c.id,
             toolName,
-            args: c.input || {},
+            args: { path },
             result: {
-              files: ((toolResultItem as any).toolUseResult || "").split("\n"),
+              files: ((toolResultItem as any).toolUseResult || "")
+                .split("\n")
+                .filter(Boolean),
               isTruncated: false,
             },
           },
