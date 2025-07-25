@@ -108,15 +108,20 @@ export function _createToolInvocation(
       const toolName = "webFetch";
       let invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]>;
       if (toolResultItem) {
+        const input = c.input;
+        const url = input.url;
+
+        const result = (toolResultItem as any).toolUseResult.result || "";
+
         invocation = {
           type: "tool-invocation",
           toolInvocation: {
             state: "result",
             toolCallId: c.id,
             toolName,
-            args: c.input || {},
+            args: { url },
             result: {
-              result: (toolResultItem as any).toolUseResult || "",
+              result: result || "",
               isTruncated: false,
             },
           },
