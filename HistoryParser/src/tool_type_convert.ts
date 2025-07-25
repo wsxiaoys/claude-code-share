@@ -127,6 +127,55 @@ export function _createToolInvocation(
     //   }
     //   return createCallInvocation(toolName);
     // }
+    case "MultiEdit": {
+      const toolName = "multiApplyDiff";
+      let invocation: ToolInvocationUIPart<ClientToolsType["multiApplyDiff"]>;
+      if (toolResultItem) {
+        const input = c.input;
+        const path = input.file_path;
+        const formattedEdits = input.edits.map((edit: any) => ({
+          searchContent: edit.old_string,
+          replaceContent: edit.new_string,
+        }));
+
+        //result
+        const toolUseResult = (toolResultItem as any).toolUseResult;
+
+        const { added, removed } = toolUseResult.structuredPatch.reduce(
+          (summary: { added: number; removed: number }, patch: any) => {
+            patch.lines.forEach((line: string) => {
+              if (line.startsWith("+")) summary.added++;
+              if (line.startsWith("-")) summary.removed++;
+            });
+            return summary;
+          },
+          { added: 0, removed: 0 }
+        );
+
+        const pochiResult = {
+          success: true,
+          _meta: {
+            editSummary: {
+              added,
+              removed,
+            },
+          },
+        };
+
+        invocation = {
+          type: "tool-invocation",
+          toolInvocation: {
+            state: "result",
+            toolCallId: c.id,
+            toolName,
+            args: { path, edits: formattedEdits },
+            result: pochiResult,
+          },
+        };
+        return invocation;
+      }
+      return createCallInvocation(toolName);
+    }
     case "Task": {
       const toolName = "newTask";
       let invocation: ToolInvocationUIPart<ClientToolsType["newTask"]>;
