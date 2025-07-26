@@ -1,8 +1,15 @@
-import fs from "fs";
-import path from "path";
-import { type UIMessage } from "ai";
+import fs from "node:fs";
+import type { UIMessage } from "ai";
+import { claude } from "../src/converters/claude";
 
-const filePath = path.join(process.cwd(), "output", "ai-sdk-format.txt");
+const inputData = "testdata/example.jsonl";
+const outputData = "testdata/ai-sdk-format.json";
+
+const messages = claude.convert(fs.readFileSync(inputData, "utf-8"));
+
+fs.writeFileSync(outputData, JSON.stringify(messages, null, 2), "utf-8");
+
+const filePath = outputData;
 
 console.log("🔍 Testing AI SDK UIMessage compatibility...");
 console.log(`📁 File: ${filePath}`);
@@ -22,7 +29,7 @@ try {
   console.log(`📊 Total messages: ${data.length}`);
 
   // Test TypeScript casting to UIMessage[]
-  const messages: UIMessage[] = data;
+  const _messages: UIMessage[] = data;
   console.log("✅ TypeScript casting: SUCCESS");
   console.log("");
 
@@ -58,7 +65,7 @@ try {
     } else {
       invalid++;
       errors.push(
-        `Message ${i} (ID: ${msg?.id || "unknown"}): Invalid structure`
+        `Message ${i} (ID: ${msg?.id || "unknown"}): Invalid structure`,
       );
     }
   });
@@ -71,13 +78,13 @@ try {
   console.log(`⚙️ System messages: ${stats.system}`);
   console.log(`🧩 Messages with parts: ${stats.withParts}`);
   console.log(
-    `🔧 Messages with tool invocations: ${stats.withToolInvocations}`
+    `🔧 Messages with tool invocations: ${stats.withToolInvocations}`,
   );
   console.log("");
 
   if (invalid === 0) {
     console.log(
-      "🎉 PERFECT! Your file is fully compatible with AI SDK UIMessage!"
+      "🎉 PERFECT! Your file is fully compatible with AI SDK UIMessage!",
     );
     console.log("✅ You can import and use this data directly:");
     console.log("");
@@ -87,19 +94,19 @@ try {
     console.log("");
     console.log("const uiMessages: UIMessage[] = messages;");
     console.log(
-      "// Use with AI SDK functions like generateText, streamText, etc."
+      "// Use with AI SDK functions like generateText, streamText, etc.",
     );
     console.log("```");
 
     if (stats.withParts > 0) {
       console.log(
-        'ℹ️  Note: Some messages contain "parts" for rich content structure.'
+        'ℹ️  Note: Some messages contain "parts" for rich content structure.',
       );
     }
 
     if (stats.withToolInvocations > 0) {
       console.log(
-        "ℹ️  Note: Some messages contain tool invocations for interactive capabilities."
+        "ℹ️  Note: Some messages contain tool invocations for interactive capabilities.",
       );
     }
 
@@ -114,7 +121,7 @@ try {
   }
 } catch (error) {
   console.log(
-    `❌ ERROR: ${error instanceof Error ? error.message : "Unknown error"}`
+    `❌ ERROR: ${error instanceof Error ? error.message : "Unknown error"}`,
   );
   process.exit(1);
 }

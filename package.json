@@ -1,14 +1,25 @@
 {
-  "name": "claude-code-history-to-ai-sdk-parser",
+  "name": "claude-code-share",
+  "type": "module",
   "private": true,
-  "workspaces": [
-    "Demo",
-    "HistoryParser"
-  ],
-  "devDependencies": {
-    "@types/bun": "latest"
+  "bin": {
+    "claude-code-share": "src/cli.ts"
   },
-  "peerDependencies": {
-    "typescript": "^5"
+  "scripts": {
+    "verify": "bun run scripts/verify-ai-sdk-format.ts",
+    "fix": "bun biome check --write",
+    "tsc": "tsc"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.56.0",
+    "@getpochi/tools": "^0.0.3",
+    "ai": "^4.3.19",
+    "commander": "^14.0.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.1.2",
+    "@types/bun": "^1.2.19",
+    "@types/json-schema": "^7.0.15",
+    "typescript": "^5.8.3"
   }
 }

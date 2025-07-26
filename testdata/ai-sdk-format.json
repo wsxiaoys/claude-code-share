@@ -1,0 +1,84 @@
+[
+  {
+    "id": "605908e4-da5a-4fbb-b3b0-9e375e1e0746",
+    "role": "user",
+    "content": "Tell me what is this repo about",
+    "createdAt": "2025-07-18T15:34:31.444Z",
+    "parts": [
+      {
+        "type": "text",
+        "text": "Tell me what is this repo about"
+      }
+    ]
+  },
+  {
+    "id": "2c835f64-591f-4e7e-991a-d6f69c4969c8",
+    "role": "assistant",
+    "content": "I'll analyze this repository to understand what it's about.",
+    "createdAt": "2025-07-18T15:34:35.352Z",
+    "parts": [
+      {
+        "type": "text",
+        "text": "I'll analyze this repository to understand what it's about."
+      }
+    ]
+  },
+  {
+    "id": "1c3f8e52-eb29-4d4a-af98-361126038cf1",
+    "role": "assistant",
+    "content": "",
+    "createdAt": "2025-07-18T15:34:35.801Z",
+    "parts": [
+      {
+        "type": "tool-invocation",
+        "toolInvocation": {
+          "state": "result",
+          "toolCallId": "toolu_01FD6Mex77EVpecTG5SniRfa",
+          "toolName": "readFile",
+          "args": {
+            "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/README.md"
+          },
+          "result": {
+            "content": "# Claude-code-history-To-Ai-SDK-Parser\n\nClaude code history should be located at your users .claude/projects/\n\n## Get started\n\n1. bun install\n\n### CLI\n\n2. cd HistoryParser\n\n3. bun run index.ts <Your Claude Code History .jsonl> or bun run index.ts example.jsonl\n\n4. Check the result in output\n\n5. bun run test (check if the result format match UIMessage in AI SDK)\n\n### Web page (This give better chat view)\n\n2. cd demo\n\n3. bun run dev\n\n## Project Structure\n\n/demo is the frontend demo page to quickly view the result with ai sdk ui.\n\n/HistoryParser has the script HistoryParser.ts which pass the file.\n",
+            "isTruncated": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "f651c0bd-6a7b-49ed-b56e-e99affc1a713",
+    "role": "assistant",
+    "content": "",
+    "createdAt": "2025-07-18T15:34:39.202Z",
+    "parts": [
+      {
+        "type": "tool-invocation",
+        "toolInvocation": {
+          "state": "result",
+          "toolCallId": "toolu_01HpFSBAQFmkPR8REEdxjV3z",
+          "toolName": "readFile",
+          "args": {
+            "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/package.json"
+          },
+          "result": {
+            "content": "{\n  \"name\": \"claude-code-history-to-ai-sdk-parser\",\n  \"private\": true,\n  \"workspaces\": [\n    \"Demo\",\n    \"HistoryParser\"\n  ],\n  \"devDependencies\": {\n    \"@types/bun\": \"latest\"\n  },\n  \"peerDependencies\": {\n    \"typescript\": \"^5\"\n  }\n}\n",
+            "isTruncated": false
+          }
+        }
+      }
+    ]
+  },
+  {
+    "id": "7adb1763-42ca-4a03-b062-7f32a1667d0b",
+    "role": "assistant",
+    "content": "This repository is a parser tool that converts Claude Code conversation history into AI SDK UIMessage format. It takes the .jsonl files from Claude Code (stored in `~/.claude/projects/`) and transforms them into a format compatible with Vercel's AI SDK UI components, allowing you to view Claude Code conversations in a web interface with better chat visualization.",
+    "createdAt": "2025-07-18T15:34:44.595Z",
+    "parts": [
+      {
+        "type": "text",
+        "text": "This repository is a parser tool that converts Claude Code conversation history into AI SDK UIMessage format. It takes the .jsonl files from Claude Code (stored in `~/.claude/projects/`) and transforms them into a format compatible with Vercel's AI SDK UI components, allowing you to view Claude Code conversations in a web interface with better chat visualization."
+      }
+    ]
+  }
+]

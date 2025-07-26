@@ -1,64 +1,55 @@
+import type { Anthropic } from "@anthropic-ai/sdk";
 import type {
-  ServerTools,
   ClientToolsType,
+  ServerTools,
   ToolInvocationUIPart,
 } from "@getpochi/tools";
-import type { ToolInvocationPart } from "./types/UiMessage_type";
+import type { TextPart, UIMessage } from "ai";
+import type { ToolInvocationPart } from "@/types";
 import type {
-  ClaudeToolCall,
-  LSToolCall,
-  WriteToolCall,
-  GlobToolCall,
-  ReadToolCall,
-  EditToolCall,
-  MultiEditToolCall,
-  TaskToolCall,
-  WebFetchToolCall,
   BashToolCall,
-  TodoWriteToolCall,
-  LSToolInput,
-  WriteToolInput,
-  GlobToolInput,
-  ReadToolInput,
-  EditToolInput,
-  MultiEditToolInput,
-  TaskToolInput,
-  WebFetchToolInput,
   BashToolInput,
-  TodoWriteToolInput,
-  LSToolResult,
-  WriteToolResult,
-  GlobToolResult,
-  ReadToolResult,
-  EditToolResult,
-  MultiEditToolResult,
-  TaskToolResult,
-  WebFetchToolResult,
   BashToolResult,
+  ClaudeCodeMessage,
+  ClaudeToolCall,
+  EditToolCall,
+  EditToolInput,
+  EditToolResult,
+  GlobToolCall,
+  GlobToolInput,
+  GlobToolResult,
+  LSToolCall,
+  LSToolInput,
+  LSToolResult,
+  MultiEditToolCall,
+  MultiEditToolInput,
+  MultiEditToolResult,
+  NestedMessage,
+  ReadToolCall,
+  ReadToolInput,
+  ReadToolResult,
+  TaskToolCall,
+  TaskToolInput,
+  TaskToolResult,
+  TodoWriteToolCall,
+  TodoWriteToolInput,
   TodoWriteToolResult,
-} from "./types/claude_code_tool_type";
-import type { ClaudeCodeMessage } from "./types/claude_code_types";
+  WebFetchToolCall,
+  WebFetchToolInput,
+  WebFetchToolResult,
+  WriteToolCall,
+  WriteToolInput,
+  WriteToolResult,
+} from "./types";
 
-/**
- * Converts Unix line endings (\n) to Windows line endings (\r\n)
- * @param text The text to convert
- * @returns The text with Windows line endings
- */
 function convertToWindowsLineEndings(text: string): string {
   return text.replace(/\r?\n/g, "\r\n");
 }
 
-/**
- * Creates a tool invocation part from a Claude tool call.
- * @param c The tool call object from Claude's message.
- * @param toolResult The corresponding tool result object.
- * @returns A ToolInvocationPart object.
- */
-export function _createToolInvocation(
+function convertToolCall(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): ToolInvocationPart {
-  // Helper function to create call state invocation
   const createCallInvocation = (toolName: string): ToolInvocationPart => ({
     type: "tool-invocation",
     toolInvocation: {
@@ -69,12 +60,11 @@ export function _createToolInvocation(
     },
   });
 
-  // Convert Claude tool calls to Pochi format
   if (c.name === "LS") {
     return handleListFiles(
       c as LSToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -82,7 +72,7 @@ export function _createToolInvocation(
     return handleWriteToFile(
       c as WriteToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -90,7 +80,7 @@ export function _createToolInvocation(
     return handleGlobFiles(
       c as GlobToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -98,7 +88,7 @@ export function _createToolInvocation(
     return handleTodoWrite(
       c as TodoWriteToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -106,7 +96,7 @@ export function _createToolInvocation(
     return handleWebFetch(
       c as WebFetchToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -114,7 +104,7 @@ export function _createToolInvocation(
     return handleMultiEdit(
       c as MultiEditToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -122,7 +112,7 @@ export function _createToolInvocation(
     return handleNewTask(
       c as TaskToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -130,7 +120,7 @@ export function _createToolInvocation(
     return handleReadFile(
       c as ReadToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -138,7 +128,7 @@ export function _createToolInvocation(
     return handleApplyDiff(
       c as EditToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
@@ -146,19 +136,17 @@ export function _createToolInvocation(
     return handleExecuteCommand(
       c as BashToolCall,
       toolResultItem,
-      createCallInvocation
+      createCallInvocation,
     );
   }
 
-  // Default handler for unknown tools
   return handleUnknownTool(c, toolResultItem, createCallInvocation);
 }
 
-// Helper functions for each tool type
 function handleListFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "listFiles";
 
@@ -189,7 +177,7 @@ function handleListFiles(
 function handleWriteToFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "writeToFile";
 
@@ -200,7 +188,6 @@ function handleWriteToFile(
   const { content, file_path: path } = c.input as WriteToolInput;
   const toolResult = (toolResultItem as WriteToolResult).toolUseResult;
 
-  // Extract success status from result
   let success = true;
   if (
     typeof toolResult === "object" &&
@@ -229,7 +216,7 @@ function handleWriteToFile(
 function handleGlobFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "globFiles";
 
@@ -258,7 +245,7 @@ function handleGlobFiles(
 function handleTodoWrite(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "todoWrite";
 
@@ -269,7 +256,6 @@ function handleTodoWrite(
   const { todos } = c.input as TodoWriteToolInput;
   const toolResult = (toolResultItem as TodoWriteToolResult).toolUseResult;
 
-  // Extract success status and additional info from result
   let success = true;
   if (typeof toolResult === "object" && toolResult !== null) {
     if ("success" in toolResult) {
@@ -296,7 +282,7 @@ function handleTodoWrite(
 function handleWebFetch(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "webFetch";
 
@@ -327,7 +313,7 @@ function handleWebFetch(
 function handleMultiEdit(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "multiApplyDiff";
 
@@ -336,21 +322,26 @@ function handleMultiEdit(
   }
 
   const { file_path: path, edits } = c.input as MultiEditToolInput;
-  const formattedEdits = edits.map((edit) => ({
-    searchContent: edit.old_string,
-    replaceContent: edit.new_string,
-  }));
+  const formattedEdits = edits.map(
+    (edit: { old_string: string; new_string: string }) => ({
+      searchContent: edit.old_string,
+      replaceContent: edit.new_string,
+    }),
+  );
 
   const toolUseResult = (toolResultItem as MultiEditToolResult).toolUseResult;
   const { added, removed } = toolUseResult.structuredPatch.reduce(
-    (summary: { added: number; removed: number }, patch) => {
+    (
+      summary: { added: number; removed: number },
+      patch: { lines: string[] },
+    ) => {
       patch.lines.forEach((line: string) => {
         if (line.startsWith("+")) summary.added++;
         if (line.startsWith("-")) summary.removed++;
       });
       return summary;
     },
-    { added: 0, removed: 0 }
+    { added: 0, removed: 0 },
   );
 
   const pochiResult = {
@@ -380,7 +371,7 @@ function handleMultiEdit(
 function handleNewTask(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "newTask";
 
@@ -409,7 +400,7 @@ function handleNewTask(
 function handleReadFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "readFile";
 
@@ -445,7 +436,7 @@ function handleReadFile(
 function handleApplyDiff(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "applyDiff";
 
@@ -476,7 +467,7 @@ function handleApplyDiff(
         }
         return summary;
       },
-      { added: 0, removed: 0 }
+      { added: 0, removed: 0 },
     ));
   }
 
@@ -507,7 +498,7 @@ function handleApplyDiff(
 function handleExecuteCommand(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   const toolName = "executeCommand";
 
@@ -556,7 +547,7 @@ function handleExecuteCommand(
 function handleUnknownTool(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
+  createCallInvocation: (toolName: string) => ToolInvocationPart,
 ): ToolInvocationPart {
   if (!toolResultItem) {
     return createCallInvocation(c.name);
@@ -573,3 +564,236 @@ function handleUnknownTool(
     },
   };
 }
+
+class ClaudeConverter {
+  convert(content: string): UIMessage[] {
+    try {
+      const lines = content.split("\n").filter(Boolean);
+      const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
+        JSON.parse(line),
+      );
+
+      const extractedMessages: UIMessage[] = parsedData
+        .map((item, index) => this.parseMessage(item, parsedData, index))
+        .filter((message): message is UIMessage => message !== null);
+
+      return extractedMessages;
+    } catch (error) {
+      console.error("Error processing content:", error);
+      return [];
+    }
+  }
+
+  private parseMessage(
+    item: ClaudeCodeMessage,
+    parsedData: ClaudeCodeMessage[],
+    index: number,
+  ): UIMessage | null {
+    if (!item.message || typeof item.message !== "object") {
+      return null;
+    }
+
+    if ("uuid" in item) {
+      const nestedMessage = item.message as NestedMessage;
+
+      if ("role" in nestedMessage && "content" in nestedMessage) {
+        if (item.type === "assistant" && nestedMessage.role === "assistant") {
+          return this.parseAssistantMessage(
+            item,
+            nestedMessage,
+            parsedData,
+            index,
+          );
+        }
+
+        if (item.type === "user" && nestedMessage.role === "user") {
+          return this.parseUserMessage(item, nestedMessage);
+        }
+      }
+
+      return this.parseOtherMessageTypes(item, nestedMessage);
+    }
+    return null;
+  }
+
+  private parseAssistantMessage(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: NestedMessage,
+    parsedData: ClaudeCodeMessage[],
+    index: number,
+  ): UIMessage {
+    const parts: (TextPart | ToolInvocationPart)[] = [];
+    let textContent = "";
+
+    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
+      nestedMessage.content.forEach(
+        (
+          c:
+            | Anthropic.Messages.ContentBlock
+            | Anthropic.Messages.ContentBlockParam,
+        ) => {
+          if (c.type === "text" && c.text) {
+            textContent += c.text;
+          } else if (c.type === "tool_use" && c.id && c.name) {
+            let toolResultItem: ClaudeCodeMessage | null = null;
+            for (let i = index + 1; i < parsedData.length; i++) {
+              const futureItem = parsedData[i];
+              if (
+                futureItem &&
+                futureItem.type === "user" &&
+                futureItem.message &&
+                typeof futureItem.message === "object" &&
+                "role" in futureItem.message &&
+                futureItem.message.role === "user" &&
+                Array.isArray(futureItem.message.content)
+              ) {
+                const toolResultContent = futureItem.message.content.find(
+                  (
+                    contentPart:
+                      | Anthropic.Messages.ContentBlock
+                      | Anthropic.Messages.ContentBlockParam,
+                  ) =>
+                    contentPart.type === "tool_result" &&
+                    contentPart.tool_use_id === c.id,
+                );
+                if (toolResultContent) {
+                  toolResultItem = futureItem;
+                  break;
+                }
+              }
+            }
+
+            const toolInvocation = convertToolCall(
+              c as ClaudeToolCall,
+              toolResultItem,
+            );
+            parts.push(toolInvocation);
+          }
+        },
+      );
+    }
+
+    if (textContent) {
+      parts.unshift({
+        type: "text",
+        text: textContent,
+      });
+    }
+
+    return {
+      id: historyItem.uuid,
+      role: "assistant",
+      content: textContent || "",
+      createdAt: new Date(historyItem.timestamp),
+      ...(parts.length > 0 && { parts }),
+    } as UIMessage;
+  }
+
+  private parseUserMessage(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: NestedMessage,
+  ): UIMessage | null {
+    if (
+      "content" in nestedMessage &&
+      typeof nestedMessage.content === "string"
+    ) {
+      return {
+        id: historyItem.uuid,
+        role: "user",
+        content: nestedMessage.content,
+        createdAt: new Date(historyItem.timestamp),
+        parts: [{ type: "text", text: nestedMessage.content }],
+      } as UIMessage;
+    }
+
+    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
+      if (
+        nestedMessage.content.length === 1 &&
+        nestedMessage.content[0]?.type === "tool_result"
+      ) {
+        return null;
+      }
+
+      const parts: TextPart[] = [];
+      let textContent = "";
+
+      nestedMessage.content.forEach(
+        (
+          c:
+            | Anthropic.Messages.ContentBlock
+            | Anthropic.Messages.ContentBlockParam,
+        ) => {
+          if (c.type === "text" && c.text) {
+            textContent += c.text;
+          } else if (c.type === "image" && c.source) {
+            textContent += `[Image: ${c.source.type}]`;
+          } else if (c.type === "tool_result" && c.content) {
+            textContent += c.content;
+          }
+        },
+      );
+
+      if (textContent) {
+        parts.push({
+          type: "text",
+          text: textContent,
+        });
+      }
+
+      return {
+        id: historyItem.uuid,
+        role: "user",
+        content: textContent,
+        createdAt: new Date(historyItem.timestamp),
+        ...(parts.length > 0 && { parts }),
+      } as UIMessage;
+    }
+
+    return null;
+  }
+
+  private parseOtherMessageTypes(
+    historyItem: ClaudeCodeMessage,
+    nestedMessage: NestedMessage,
+  ): UIMessage | null {
+    if (historyItem.type === "result" && "result" in nestedMessage) {
+      const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    if (historyItem.type === "error") {
+      const content = "[Error occurred during conversation]";
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    if (
+      historyItem.type === "system" &&
+      "subtype" in nestedMessage &&
+      nestedMessage.subtype === "init"
+    ) {
+      const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
+        ", ",
+      )}]`;
+      return {
+        id: historyItem.uuid,
+        role: "system",
+        content,
+        parts: [{ type: "text", text: content }],
+      } as UIMessage;
+    }
+
+    return null;
+  }
+}
+
+export const claude = new ClaudeConverter();
