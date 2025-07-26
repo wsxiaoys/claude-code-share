@@ -1,171 +1,248 @@
-export type BashTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_0132Hq6KJWoN1vrfMmNypdFs";
-      name: "Bash";
-      input: {
-        command: "npm install -D tailwindcss postcss autoprefixer";
-        description: "Install Tailwind CSS dependencies";
-      };
-    }
-  ];
-};
+// Types for Claude tool calls and results
 
-export type WebFetchTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_01TAEnzMcn7em6B5BMWxxpNx";
-      name: "WebFetch";
-      input: {
-        url: "https://www.foxychat.net/";
-        prompt: "Analyze this landing page and describe its layout, sections, components, colors, typography, and overall design. Focus on the structure and visual elements that need to be recreated.";
-      };
-    }
-  ];
-};
+export interface ClaudeToolCall {
+  id: string;
+  name: string;
+  input: unknown;
+}
 
-export type WebSearchTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_0134rcFv5bFM6jXxKEMAB23H";
-      name: "WebSearch";
-      input: {
-        query: "foxychat.net AI agent computer landing page design layout";
-      };
-    }
-  ];
-};
+// Specific tool call types for better type safety
+export interface LSToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "LS";
+  input: LSToolInput;
+}
 
-export type LSTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_01HSQZfQFqvRqrWyDdEV7ywp";
-      name: "LS";
-      input: {
-        path: "/Volumes/1T_Mac_Disk/code/pochi_landing_page_test";
-      };
-    }
-  ];
-};
+export interface WriteToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Write";
+  input: WriteToolInput;
+}
 
-export type ToDoTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_016nTCPbrTApUGkn64vbvn88";
-      name: "TodoWrite";
-      input: {
-        todos: [
-          {
-            id: "1";
-            content: "Initialize React + TypeScript + Tailwind project";
-            status: "pending";
-            priority: "high";
-          },
-          {
-            id: "2";
-            content: "Analyze FoxyChat website structure and design";
-            status: "pending";
-            priority: "high";
-          },
-          {
-            id: "3";
-            content: "Create basic project structure and components";
-            status: "pending";
-            priority: "medium";
-          },
-          {
-            id: "4";
-            content: "Implement header/navigation section";
-            status: "pending";
-            priority: "medium";
-          },
-          {
-            id: "5";
-            content: "Implement hero section with main messaging";
-            status: "pending";
-            priority: "medium";
-          },
-          {
-            id: "6";
-            content: "Implement features/benefits sections";
-            status: "pending";
-            priority: "medium";
-          },
-          {
-            id: "7";
-            content: "Implement footer section";
-            status: "pending";
-            priority: "low";
-          },
-          {
-            id: "8";
-            content: "Add responsive design and polish styling";
-            status: "pending";
-            priority: "low";
-          }
-        ];
-      };
-    }
-  ];
-};
+export interface GlobToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Glob";
+  input: GlobToolInput;
+}
 
-export type TaskTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_01FxQ8hg3WwHSZz6BEfMr1NL";
-      name: "Task";
-      input: {
-        description: "Research FoxyChat website";
-        prompt: "Visit https://www.foxychat.net/ and provide a comprehensive analysis of the landing page design, including:\n\n1. Overall layout and structure\n2. Header/navigation design \n3. Hero section content and design\n4. Main sections and their content\n5. Visual elements, colors, fonts\n6. Call-to-action buttons\n7. Footer design\n8. Any animations or interactive elements\n9. Responsive design considerations\n\nFocus on extracting specific design details that would be needed to recreate this landing page using React, TypeScript, and Tailwind CSS. Include exact text content, color schemes, spacing, and layout patterns.";
-      };
-    }
-  ];
-};
+export interface ReadToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Read";
+  input: ReadToolInput;
+}
 
-export type WriteTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_01GPbfqdyYZ8KjrVF8qEFB4Z";
-      name: "Write";
-      input: {
-        file_path: "/Volumes/1T_Mac_Disk/code/pochi_landing_page_test/foxychat-clone/postcss.config.js";
-        content: "export default {\n  plugins: {\n    tailwindcss: {},\n    autoprefixer: {},\n  },\n}";
-      };
-    }
-  ];
-};
+export interface EditToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Edit";
+  input: EditToolInput;
+}
 
-export type ReadTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_01NoybmkED6fBqDow2Kb6sjN";
-      name: "Read";
-      input: {
-        file_path: "/Volumes/1T_Mac_Disk/code/pochi_landing_page_test/foxychat-clone/src/index.css";
-      };
-    }
-  ];
-};
+export interface MultiEditToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "MultiEdit";
+  input: MultiEditToolInput;
+}
 
-export type EditTool = {
-  content: [
-    {
-      type: "tool_use";
-      id: "toolu_0175qphCDo4a9hsuLXxs45zR";
-      name: "Edit";
-      input: {
-        file_path: "/Volumes/1T_Mac_Disk/code/pochi_landing_page_test/foxychat-clone/src/index.css";
-        old_string: ":root {\n  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;\n  line-height: 1.5;\n  font-weight: 400;\n\n  color-scheme: light dark;\n  color: rgba(255, 255, 255, 0.87);\n  background-color: #242424;\n\n  font-synthesis: none;\n  text-rendering: optimizeLegibility;\n  -webkit-font-smoothing: antialiased;\n  -moz-osx-font-smoothing: grayscale;\n}\n\na {\n  font-weight: 500;\n  color: #646cff;\n  text-decoration: inherit;\n}\na:hover {\n  color: #535bf2;\n}\n\nbody {\n  margin: 0;\n  display: flex;\n  place-items: center;\n  min-width: 320px;\n  min-height: 100vh;\n}\n\nh1 {\n  font-size: 3.2em;\n  line-height: 1.1;\n}\n\nbutton {\n  border-radius: 8px;\n  border: 1px solid transparent;\n  padding: 0.6em 1.2em;\n  font-size: 1em;\n  font-weight: 500;\n  font-family: inherit;\n  background-color: #1a1a1a;\n  cursor: pointer;\n  transition: border-color 0.25s;\n}\nbutton:hover {\n  border-color: #646cff;\n}\nbutton:focus,\nbutton:focus-visible {\n  outline: 4px auto -webkit-focus-ring-color;\n}\n\n@media (prefers-color-scheme: light) {\n  :root {\n    color: #213547;\n    background-color: #ffffff;\n  }\n  a:hover {\n    color: #747bff;\n  }\n  button {\n    background-color: #f9f9f9;\n  }\n}";
-        new_string: "@tailwind base;\n@tailwind components;\n@tailwind utilities;";
-      };
-    }
-  ];
-};
+export interface TaskToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Task";
+  input: TaskToolInput;
+}
+
+export interface WebFetchToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "WebFetch";
+  input: WebFetchToolInput;
+}
+
+export interface BashToolCall extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "Bash";
+  input: BashToolInput;
+}
+
+export interface TodoWriteToolCall
+  extends Omit<ClaudeToolCall, "input" | "name"> {
+  name: "TodoWrite";
+  input: TodoWriteToolInput;
+}
+
+export interface ClaudeToolResult {
+  toolUseResult: unknown;
+  message?: {
+    content: Array<{
+      is_error: boolean;
+    }>;
+  };
+}
+
+// Specific input types for different Claude tools
+export interface LSToolInput {
+  path: string;
+}
+
+export interface WriteToolInput {
+  content: string;
+  file_path: string;
+}
+
+export interface GlobToolInput {
+  pattern: string;
+  path: string;
+}
+
+export interface ReadToolInput {
+  file_path: string;
+  offset?: number;
+  limit?: number;
+}
+
+export interface EditToolInput {
+  file_path: string;
+  old_string: string;
+  new_string: string;
+}
+
+export interface MultiEditToolInput {
+  file_path: string;
+  edits: Array<{
+    old_string: string;
+    new_string: string;
+  }>;
+}
+
+export interface TaskToolInput {
+  description: string;
+  prompt: string;
+}
+
+export interface WebFetchToolInput {
+  url: string;
+}
+
+export interface BashToolInput {
+  command?: string;
+  [key: string]: unknown;
+}
+
+export interface TodoWriteToolInput {
+  todos: Array<{
+    status: "pending" | "in-progress" | "completed" | "cancelled";
+    content: string;
+    id: string;
+    priority: "low" | "medium" | "high";
+  }>;
+}
+
+// Specific result types for different Claude tools
+export interface LSToolResult {
+  toolUseResult: string;
+}
+
+export interface WriteToolResult {
+  toolUseResult:
+    | {
+        success: boolean;
+        file_path?: string;
+        bytes_written?: number;
+      }
+    | string;
+}
+
+export interface GlobToolResult {
+  toolUseResult: {
+    filenames: string[];
+  };
+}
+
+export interface ReadToolResult {
+  toolUseResult: {
+    file: {
+      content: string;
+    };
+  };
+}
+
+export interface EditToolResult {
+  toolUseResult: {
+    structuredPatch?: Array<{
+      lines: string[];
+    }>;
+  } | null;
+}
+
+export interface MultiEditToolResult {
+  toolUseResult: {
+    structuredPatch: Array<{
+      lines: string[];
+    }>;
+  };
+}
+
+export interface TaskToolResult {
+  toolUseResult: {
+    content: Array<{
+      text: string;
+    }>;
+  };
+}
+
+export interface WebFetchToolResult {
+  toolUseResult: {
+    result: string;
+  };
+}
+
+export interface BashToolResult {
+  toolUseResult:
+    | {
+        stdout?: string;
+      }
+    | string;
+  message: {
+    content: Array<{
+      is_error: boolean;
+    }>;
+  };
+}
+
+export interface TodoWriteToolResult {
+  toolUseResult:
+    | {
+        success: boolean;
+      }
+    | string;
+}
+
+// Union types for type-safe handling
+export type ClaudeToolInput =
+  | LSToolInput
+  | WriteToolInput
+  | GlobToolInput
+  | ReadToolInput
+  | EditToolInput
+  | MultiEditToolInput
+  | TaskToolInput
+  | WebFetchToolInput
+  | BashToolInput
+  | TodoWriteToolInput
+  | unknown;
+
+export type ClaudeToolResultType =
+  | LSToolResult
+  | WriteToolResult
+  | GlobToolResult
+  | ReadToolResult
+  | EditToolResult
+  | MultiEditToolResult
+  | TaskToolResult
+  | WebFetchToolResult
+  | BashToolResult
+  | TodoWriteToolResult
+  | ClaudeToolResult;
+
+// Union type for all specific tool calls
+export type SpecificClaudeToolCall =
+  | LSToolCall
+  | WriteToolCall
+  | GlobToolCall
+  | ReadToolCall
+  | EditToolCall
+  | MultiEditToolCall
+  | TaskToolCall
+  | WebFetchToolCall
+  | BashToolCall
+  | TodoWriteToolCall;
