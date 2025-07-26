@@ -2,7 +2,6 @@ import type { Anthropic } from "@anthropic-ai/sdk";
 import type { MessageParam } from "@anthropic-ai/sdk/resources";
 
 // Types for Claude tool calls and results
-// Base interface for all Claude tool calls
 export interface ClaudeToolCall {
   id: string;
   name: string;
