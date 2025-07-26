@@ -48,7 +48,7 @@ function convertToWindowsLineEndings(text: string): string {
 
 function convertToolCall(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null,
+  toolResultItem: ClaudeCodeMessage | null
 ): ToolInvocationPart {
   const createCallInvocation = (toolName: string): ToolInvocationPart => ({
     type: "tool-invocation",
@@ -64,7 +64,7 @@ function convertToolCall(
     return handleListFiles(
       c as LSToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -72,7 +72,7 @@ function convertToolCall(
     return handleWriteToFile(
       c as WriteToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -80,7 +80,7 @@ function convertToolCall(
     return handleGlobFiles(
       c as GlobToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -88,7 +88,7 @@ function convertToolCall(
     return handleTodoWrite(
       c as TodoWriteToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -96,7 +96,7 @@ function convertToolCall(
     return handleWebFetch(
       c as WebFetchToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -104,7 +104,7 @@ function convertToolCall(
     return handleMultiEdit(
       c as MultiEditToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -112,7 +112,7 @@ function convertToolCall(
     return handleNewTask(
       c as TaskToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -120,7 +120,7 @@ function convertToolCall(
     return handleReadFile(
       c as ReadToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -128,7 +128,7 @@ function convertToolCall(
     return handleApplyDiff(
       c as EditToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -136,7 +136,7 @@ function convertToolCall(
     return handleExecuteCommand(
       c as BashToolCall,
       toolResultItem,
-      createCallInvocation,
+      createCallInvocation
     );
   }
 
@@ -146,7 +146,7 @@ function convertToolCall(
 function handleListFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "listFiles";
 
@@ -177,7 +177,7 @@ function handleListFiles(
 function handleWriteToFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "writeToFile";
 
@@ -216,7 +216,7 @@ function handleWriteToFile(
 function handleGlobFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "globFiles";
 
@@ -245,7 +245,7 @@ function handleGlobFiles(
 function handleTodoWrite(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "todoWrite";
 
@@ -282,7 +282,7 @@ function handleTodoWrite(
 function handleWebFetch(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "webFetch";
 
@@ -313,7 +313,7 @@ function handleWebFetch(
 function handleMultiEdit(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "multiApplyDiff";
 
@@ -326,14 +326,14 @@ function handleMultiEdit(
     (edit: { old_string: string; new_string: string }) => ({
       searchContent: edit.old_string,
       replaceContent: edit.new_string,
-    }),
+    })
   );
 
   const toolUseResult = (toolResultItem as MultiEditToolResult).toolUseResult;
   const { added, removed } = toolUseResult.structuredPatch.reduce(
     (
       summary: { added: number; removed: number },
-      patch: { lines: string[] },
+      patch: { lines: string[] }
     ) => {
       patch.lines.forEach((line: string) => {
         if (line.startsWith("+")) summary.added++;
@@ -341,7 +341,7 @@ function handleMultiEdit(
       });
       return summary;
     },
-    { added: 0, removed: 0 },
+    { added: 0, removed: 0 }
   );
 
   const pochiResult = {
@@ -371,7 +371,7 @@ function handleMultiEdit(
 function handleNewTask(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "newTask";
 
@@ -400,7 +400,7 @@ function handleNewTask(
 function handleReadFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "readFile";
 
@@ -414,7 +414,22 @@ function handleReadFile(
     limit: endLine,
   } = c.input as ReadToolInput;
   const result = (toolResultItem as ReadToolResult).toolUseResult;
-  const content = result.file.content;
+
+  // Handle different result structures safely
+  let content = "";
+  if (
+    result &&
+    typeof result === "object" &&
+    "file" in result &&
+    result.file &&
+    typeof result.file === "object" &&
+    "content" in result.file
+  ) {
+    content = result.file.content || "";
+  } else if (typeof result === "string") {
+    // Some results might be directly a string
+    content = result;
+  }
 
   const invocation: ToolInvocationUIPart<ClientToolsType["readFile"]> = {
     type: "tool-invocation",
@@ -436,7 +451,7 @@ function handleReadFile(
 function handleApplyDiff(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "applyDiff";
 
@@ -467,7 +482,7 @@ function handleApplyDiff(
         }
         return summary;
       },
-      { added: 0, removed: 0 },
+      { added: 0, removed: 0 }
     ));
   }
 
@@ -498,7 +513,7 @@ function handleApplyDiff(
 function handleExecuteCommand(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   const toolName = "executeCommand";
 
@@ -547,7 +562,7 @@ function handleExecuteCommand(
 function handleUnknownTool(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart,
+  createCallInvocation: (toolName: string) => ToolInvocationPart
 ): ToolInvocationPart {
   if (!toolResultItem) {
     return createCallInvocation(c.name);
@@ -570,7 +585,7 @@ class ClaudeConverter {
     try {
       const lines = content.split("\n").filter(Boolean);
       const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
-        JSON.parse(line),
+        JSON.parse(line)
       );
 
       const extractedMessages: UIMessage[] = parsedData
@@ -587,7 +602,7 @@ class ClaudeConverter {
   private parseMessage(
     item: ClaudeCodeMessage,
     parsedData: ClaudeCodeMessage[],
-    index: number,
+    index: number
   ): UIMessage | null {
     if (!item.message || typeof item.message !== "object") {
       return null;
@@ -602,7 +617,7 @@ class ClaudeConverter {
             item,
             nestedMessage,
             parsedData,
-            index,
+            index
           );
         }
 
@@ -620,7 +635,7 @@ class ClaudeConverter {
     historyItem: ClaudeCodeMessage,
     nestedMessage: NestedMessage,
     parsedData: ClaudeCodeMessage[],
-    index: number,
+    index: number
   ): UIMessage {
     const parts: (TextPart | ToolInvocationPart)[] = [];
     let textContent = "";
@@ -630,7 +645,7 @@ class ClaudeConverter {
         (
           c:
             | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam,
+            | Anthropic.Messages.ContentBlockParam
         ) => {
           if (c.type === "text" && c.text) {
             textContent += c.text;
@@ -651,10 +666,10 @@ class ClaudeConverter {
                   (
                     contentPart:
                       | Anthropic.Messages.ContentBlock
-                      | Anthropic.Messages.ContentBlockParam,
+                      | Anthropic.Messages.ContentBlockParam
                   ) =>
                     contentPart.type === "tool_result" &&
-                    contentPart.tool_use_id === c.id,
+                    contentPart.tool_use_id === c.id
                 );
                 if (toolResultContent) {
                   toolResultItem = futureItem;
@@ -665,11 +680,11 @@ class ClaudeConverter {
 
             const toolInvocation = convertToolCall(
               c as ClaudeToolCall,
-              toolResultItem,
+              toolResultItem
             );
             parts.push(toolInvocation);
           }
-        },
+        }
       );
     }
 
@@ -691,7 +706,7 @@ class ClaudeConverter {
 
   private parseUserMessage(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage,
+    nestedMessage: NestedMessage
   ): UIMessage | null {
     if (
       "content" in nestedMessage &&
@@ -721,7 +736,7 @@ class ClaudeConverter {
         (
           c:
             | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam,
+            | Anthropic.Messages.ContentBlockParam
         ) => {
           if (c.type === "text" && c.text) {
             textContent += c.text;
@@ -730,7 +745,7 @@ class ClaudeConverter {
           } else if (c.type === "tool_result" && c.content) {
             textContent += c.content;
           }
-        },
+        }
       );
 
       if (textContent) {
@@ -754,7 +769,7 @@ class ClaudeConverter {
 
   private parseOtherMessageTypes(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage,
+    nestedMessage: NestedMessage
   ): UIMessage | null {
     if (historyItem.type === "result" && "result" in nestedMessage) {
       const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
@@ -782,7 +797,7 @@ class ClaudeConverter {
       nestedMessage.subtype === "init"
     ) {
       const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
-        ", ",
+        ", "
       )}]`;
       return {
         id: historyItem.uuid,
