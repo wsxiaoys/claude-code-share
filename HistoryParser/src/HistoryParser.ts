@@ -1,4 +1,5 @@
 import { type UIMessage, type TextPart } from "ai";
+import { type Anthropic } from "@anthropic-ai/sdk";
 import {
   type ClaudeCodeMessage,
   type NestedMessage,
@@ -109,7 +110,7 @@ export class HistoryParser {
 
     // Process array content for assistant
     if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
-      nestedMessage.content.forEach((c: any) => {
+      nestedMessage.content.forEach((c: Anthropic.Messages.ContentBlock | Anthropic.Messages.ContentBlockParam) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "tool_use" && c.id && c.name) {
@@ -129,7 +130,7 @@ export class HistoryParser {
             ) {
               // Find matching tool result in this user message
               const toolResultContent = futureItem.message.content.find(
-                (contentPart: any) =>
+                (contentPart: Anthropic.Messages.ContentBlock | Anthropic.Messages.ContentBlockParam) =>
                   contentPart.type === "tool_result" &&
                   contentPart.tool_use_id === c.id
               );
@@ -201,7 +202,7 @@ export class HistoryParser {
       let textContent = "";
 
       // Concatenate content from different types
-      nestedMessage.content.forEach((c: any) => {
+      nestedMessage.content.forEach((c: Anthropic.Messages.ContentBlock | Anthropic.Messages.ContentBlockParam) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
         } else if (c.type === "image" && c.source) {
