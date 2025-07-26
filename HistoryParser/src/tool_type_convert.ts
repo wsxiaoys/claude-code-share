@@ -40,6 +40,15 @@ import type {
 import type { ClaudeCodeMessage } from "./types/claude_code_types";
 
 /**
+ * Converts Unix line endings (\n) to Windows line endings (\r\n)
+ * @param text The text to convert
+ * @returns The text with Windows line endings
+ */
+function convertToWindowsLineEndings(text: string): string {
+  return text.replace(/\r?\n/g, "\r\n");
+}
+
+/**
  * Creates a tool invocation part from a Claude tool call.
  * @param c The tool call object from Claude's message.
  * @param toolResult The corresponding tool result object.
@@ -509,17 +518,23 @@ function handleExecuteCommand(
   const item = (toolResultItem as BashToolResult).message.content[0];
   const isError = item?.is_error || false;
   const bashResult = (toolResultItem as BashToolResult).toolUseResult;
-  const result = isError
-    ? typeof bashResult === "string"
-      ? bashResult
-      : ""
-    : typeof bashResult === "object" &&
+
+  let result = "";
+  if (isError) {
+    if (typeof bashResult === "string") {
+      result = bashResult;
+    }
+  } else {
+    if (
+      typeof bashResult === "object" &&
       bashResult !== null &&
       "stdout" in bashResult
-    ? bashResult.stdout || ""
-    : typeof bashResult === "string"
-    ? bashResult
-    : "";
+    ) {
+      result = bashResult.stdout || "";
+    } else if (typeof bashResult === "string") {
+      result = bashResult;
+    }
+  }
 
   const invocation: ToolInvocationUIPart<ClientToolsType["executeCommand"]> = {
     type: "tool-invocation",
@@ -529,7 +544,7 @@ function handleExecuteCommand(
       toolName,
       args: { command: (c.input as BashToolInput)?.command || "" },
       result: {
-        output: result || "",
+        output: convertToWindowsLineEndings(result || ""),
         isTruncated: false,
       },
     },
