@@ -1,11 +1,13 @@
 {
   "name": "claude-code-share",
+  "version": "0.0.1",
   "type": "module",
-  "private": true,
   "bin": {
-    "claude-code-share": "src/cli.ts"
+    "claude-code-share": "dist/cli.ts",
+    "ccs": "dist/cli.ts"
   },
   "scripts": {
+    "build": "bun build src/cli.ts --outfile dist/cli.js --target node",
     "verify": "bun run scripts/verify-ai-sdk-format.ts",
     "fix": "bun biome check --write",
     "tsc": "tsc"
