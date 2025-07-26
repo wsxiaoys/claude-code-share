@@ -14,15 +14,9 @@ Claude code tools: https://docs.anthropic.com/en/docs/claude-code/settings#tools
 
 3. bun run index.ts <Your Claude Code History .jsonl> or bun run index.ts example.jsonl
 
-4. Check the result in output
+4. Check the result in output folder ai-sdk-format.txt file. copy the content to pochi https://app.getpochi.com/clip/new
 
 5. bun run test (check if the result format match UIMessage in AI SDK)
-
-### Web page (This give better chat view)
-
-2. cd demo
-
-3. bun run dev
 
 ## Project Structure
 
