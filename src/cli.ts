@@ -24,13 +24,19 @@ program
     "The path to the history file. Reads from stdin if not provided.",
   )
   .action(async (filePath) => {
+    let content: string;
+    let messages: UIMessage[];
+    
     if (filePath) {
-      // Original behavior: process specific file
-      const content = await getContent(filePath);
-      const messages: UIMessage[] = converters.claude.convert(content);
-      console.log(JSON.stringify(messages, null, 2));
+      // Process specific file or stdin
+      content = await getContent(filePath);
+      messages = converters.claude.convert(content);
+    } else if (!process.stdin.isTTY) {
+      // Handle piped input (e.g., npx claude-code-share < file.jsonl)
+      content = await getContent(); // Read from stdin
+      messages = converters.claude.convert(content);
     } else {
-      // New behavior: interactive mode
+      // Interactive mode: scan for Claude conversations
       const conversations = findClaudeConversations();
       
       if (conversations.length === 0) {
@@ -39,14 +45,15 @@ program
       }
       
       const selectedConv = await selectConversation(conversations);
-      const content = fs.readFileSync(selectedConv.path, "utf-8");
-      const messages: UIMessage[] = converters.claude.convert(content);
-      
-      const shareLink = await uploadToPochi(messages);
-      
-      console.log("\n🎉 Success!");
-      console.log(`📎 Share link: ${shareLink}`);
+      content = fs.readFileSync(selectedConv.path, "utf-8");
+      messages = converters.claude.convert(content);
     }
+    
+    // Always provide share link
+    const shareLink = await uploadToPochi(messages);
+    
+    console.log("\n🎉 Success!");
+    console.log(`📎 Share link: ${shareLink}`);
   });
 
 program.parse(process.argv);
