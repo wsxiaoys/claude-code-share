@@ -415,37 +415,21 @@ function handleReadFile(
   } = c.input as ReadToolInput;
   const result = (toolResultItem as ReadToolResult).toolUseResult;
 
-  // Handle different result structures safely
-  let content = "";
-  if (
-    result &&
-    typeof result === "object" &&
-    "file" in result &&
-    result.file &&
-    typeof result.file === "object" &&
-    "content" in result.file
-  ) {
-    content = result.file.content || "";
-  } else if (typeof result === "string") {
-    // Some results might be directly a string
-    content = result;
-  }
+  const args = { path, startLine, endLine };
+  const resultData = !result.file
+    ? { error: "Error: ENOENT: no such file or directory" }
+    : { content: result.file.content || "", isTruncated: false };
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["readFile"]> = {
+  return {
     type: "tool-invocation",
     toolInvocation: {
       state: "result",
       toolCallId: c.id,
       toolName,
-      args: { path, startLine, endLine },
-      result: {
-        content: content || "",
-        isTruncated: false,
-      },
+      args,
+      result: resultData,
     },
-  };
-
-  return invocation;
+  } as ToolInvocationUIPart<ClientToolsType["readFile"]>;
 }
 
 function handleApplyDiff(
