@@ -10,7 +10,8 @@
     "build": "bun build src/cli.ts --outfile dist/cli.js --target node",
     "verify": "bun run scripts/verify-ai-sdk-format.ts",
     "fix": "bun biome check --write",
-    "tsc": "tsc"
+    "tsc": "tsc",
+    "prepare": "husky"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
@@ -22,6 +23,7 @@
     "@biomejs/biome": "2.1.2",
     "@types/bun": "^1.2.19",
     "@types/json-schema": "^7.0.15",
+    "husky": "^9.1.7",
     "typescript": "^5.8.3"
   }
 }
