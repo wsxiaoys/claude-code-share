@@ -46,6 +46,26 @@ function convertToWindowsLineEndings(text: string): string {
   return text.replace(/\r?\n/g, "\r\n");
 }
 
+function getIsErrorFromToolResult(
+  toolResultItem: ClaudeCodeMessage | null
+): boolean {
+  if (!toolResultItem) return false;
+
+  if (
+    "message" in toolResultItem &&
+    toolResultItem.message &&
+    "content" in toolResultItem.message &&
+    Array.isArray(toolResultItem.message.content)
+  ) {
+    const item = toolResultItem.message.content[0];
+    return item && typeof item === "object" && "is_error" in item
+      ? Boolean(item.is_error)
+      : false;
+  }
+
+  return false;
+}
+
 function convertToolCall(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null
@@ -329,30 +349,40 @@ function handleMultiEdit(
     })
   );
 
-  const toolUseResult = (toolResultItem as MultiEditToolResult).toolUseResult;
-  const { added, removed } = toolUseResult.structuredPatch.reduce(
-    (
-      summary: { added: number; removed: number },
-      patch: { lines: string[] }
-    ) => {
-      patch.lines.forEach((line: string) => {
-        if (line.startsWith("+")) summary.added++;
-        if (line.startsWith("-")) summary.removed++;
-      });
-      return summary;
-    },
-    { added: 0, removed: 0 }
-  );
+  const isError = getIsErrorFromToolResult(toolResultItem);
 
-  const pochiResult = {
-    success: true,
-    _meta: {
-      editSummary: {
-        added,
-        removed,
+  let pochiResult;
+
+  if (isError) {
+    pochiResult = {
+      success: false,
+    };
+  } else {
+    const toolUseResult = (toolResultItem as MultiEditToolResult).toolUseResult;
+    const { added, removed } = toolUseResult.structuredPatch.reduce(
+      (
+        summary: { added: number; removed: number },
+        patch: { lines: string[] }
+      ) => {
+        patch.lines.forEach((line: string) => {
+          if (line.startsWith("+")) summary.added++;
+          if (line.startsWith("-")) summary.removed++;
+        });
+        return summary;
       },
-    },
-  };
+      { added: 0, removed: 0 }
+    );
+
+    pochiResult = {
+      success: true,
+      _meta: {
+        editSummary: {
+          added,
+          removed,
+        },
+      },
+    };
+  }
 
   const invocation: ToolInvocationUIPart<ClientToolsType["multiApplyDiff"]> = {
     type: "tool-invocation",
