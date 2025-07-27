@@ -207,14 +207,17 @@ function handleWriteToFile(
 
   const { content, file_path: path } = c.input as WriteToolInput;
   const toolResult = (toolResultItem as WriteToolResult).toolUseResult;
+  const isError = getIsErrorFromToolResult(toolResultItem);
 
   let success = true;
-  if (
-    typeof toolResult === "object" &&
-    toolResult !== null &&
-    "success" in toolResult
-  ) {
-    success = toolResult.success;
+
+  const result: { success: boolean; error?: string } = { success };
+
+  if (isError) {
+    if (typeof toolResult === "string") {
+      result.error = toolResult;
+      result.success = false;
+    }
   }
 
   const invocation: ToolInvocationUIPart<ClientToolsType["writeToFile"]> = {
@@ -224,9 +227,7 @@ function handleWriteToFile(
       toolCallId: c.id,
       toolName,
       args: { content, path },
-      result: {
-        success,
-      },
+      result,
     },
   };
 
