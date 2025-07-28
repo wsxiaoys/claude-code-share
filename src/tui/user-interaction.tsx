@@ -1,5 +1,5 @@
 import type { ConversationFile } from "../types.js";
-import { formatDate } from "./conversation-scanner.js";
+import { formatDate } from "../utils/conversation-scanner.js";
 import fs from "node:fs";
 import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
