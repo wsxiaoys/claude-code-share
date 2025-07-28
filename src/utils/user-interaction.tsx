@@ -73,7 +73,8 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
     return conversations.filter(
       (conv) =>
         conv.projectName.toLowerCase().includes(query) ||
-        conv.fileName.toLowerCase().includes(query)
+        conv.fileName.toLowerCase().includes(query) ||
+        (conv.firstMessage && conv.firstMessage.toLowerCase().includes(query))
     );
   }, [conversations, searchQuery]);
 
@@ -279,7 +280,7 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
                     color={isSelected ? "black" : "white"}
                     backgroundColor={isSelected ? "green" : undefined}
                   >
-                    {conv.projectName}/{conv.fileName}
+                    {conv.firstMessage || `${conv.projectName}/${conv.fileName}`}
                     {isSelected ? " " : ""}
                   </Text>
                 </Box>
@@ -289,7 +290,8 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
                     color={isSelected ? "black" : "gray"}
                     backgroundColor={isSelected ? "green" : undefined}
                   >
-                    {isSelected ? "     " : "     "}Date:{" "}
+                    {isSelected ? "     " : "     "}
+                    {conv.firstMessage ? `Project: ${conv.projectName} | ` : ""}Date:{" "}
                     {formatDate(conv.modifiedTime)}
                     {isSelected ? " " : ""}
                   </Text>
