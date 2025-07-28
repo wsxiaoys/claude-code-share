@@ -5,9 +5,9 @@ import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
 import { useMemo } from "react";
 
-// 获取终端高度的函数
+// Function to get terminal height
 function getTerminalHeight(): number {
-  return process.stdout.rows || 24; // 默认24行
+  return process.stdout.rows || 24; // Default 24 lines
 }
 
 interface ConversationSelectorProps {
@@ -28,7 +28,7 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
   const [terminalHeight, setTerminalHeight] = useState(getTerminalHeight());
   const { exit } = useApp();
 
-  // 监听终端大小变化
+  // Listen for terminal size changes
   useEffect(() => {
     const handleResize = () => {
       setTerminalHeight(getTerminalHeight());
@@ -40,27 +40,27 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
     };
   }, []);
 
-  // 动态计算每页显示的项目数量
+  // Dynamically calculate the number of items displayed per page
   const ITEMS_PER_PAGE = useMemo(() => {
-    // 计算固定UI元素占用的行数：
-    // - 标题: 1行
-    // - 分隔线: 1行 
-    // - 搜索/信息区域: 2-3行
-    // - 分页信息: 1行
-    // - 帮助文本: 1行
-    // - 边距和空行: 3-4行
+    // Calculate the number of lines occupied by fixed UI elements:
+    // - Title: 1 line
+    // - Separator: 1 line 
+    // - Search/info area: 2-3 lines
+    // - Pagination info: 1 line
+    // - Help text: 1 line
+    // - Margins and blank lines: 3-4 lines
     const fixedLines = isSearchMode ? 10 : 9;
     
-    // 每个对话项占用的行数：
-    // - 普通项: 2行 (名称 + 日期)
-    // - 选中项: 3行 (名称 + 日期 + 路径)
-    // - 项目间距: 1行
-    const linesPerItem = 3; // 按最大情况计算
+    // Number of lines occupied by each conversation item:
+    // - Normal item: 2 lines (name + date)
+    // - Selected item: 3 lines (name + date + path)
+    // - Item spacing: 1 line
+    const linesPerItem = 3; // Calculate based on maximum case
     
-    // 计算可用于显示对话项的行数
+    // Calculate the number of lines available for displaying conversation items
     const availableLines = Math.max(terminalHeight - fixedLines, linesPerItem);
     
-    // 计算最大可显示的项目数量，最少1个，最多不超过原来的8个
+    // Calculate the maximum number of items that can be displayed, minimum 1, maximum not exceeding the original 8
     const maxItems = Math.floor(availableLines / linesPerItem);
     return Math.max(1, Math.min(maxItems, 8));
   }, [isSearchMode, terminalHeight]);
@@ -83,19 +83,19 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
     setSelectedIndex(0);
   }, [searchQuery]);
 
-  // 当ITEMS_PER_PAGE变化时，调整当前页面和选中索引
+  // Adjust current page and selected index when ITEMS_PER_PAGE changes
   useEffect(() => {
     if (filteredConversations.length === 0) return;
     
-    // 计算当前选中项应该在哪一页
+    // Calculate which page the currently selected item should be on
     const newPage = Math.floor(selectedIndex / ITEMS_PER_PAGE);
     const maxPage = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE) - 1;
     
-    // 确保页面索引在有效范围内
+    // Ensure page index is within valid range
     const validPage = Math.min(newPage, maxPage);
     setCurrentPage(validPage);
     
-    // 如果当前选中的索引超出了新的范围，调整到当前页的最后一项
+    // If the currently selected index exceeds the new range, adjust to the last item on the current page
     const maxIndexInPage = Math.min(
       (validPage + 1) * ITEMS_PER_PAGE - 1,
       filteredConversations.length - 1
