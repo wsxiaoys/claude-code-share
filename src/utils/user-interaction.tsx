@@ -5,6 +5,11 @@ import React, { useState, useEffect, useCallback } from "react";
 import { render, Box, Text, useInput, useApp } from "ink";
 import { useMemo } from "react";
 
+// 获取终端高度的函数
+function getTerminalHeight(): number {
+  return process.stdout.rows || 24; // 默认24行
+}
+
 interface ConversationSelectorProps {
   conversations: ConversationFile[];
   onSelect: (conversation: ConversationFile) => void;
@@ -20,9 +25,45 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
   const [currentPage, setCurrentPage] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearchMode, setIsSearchMode] = useState(false);
+  const [terminalHeight, setTerminalHeight] = useState(getTerminalHeight());
   const { exit } = useApp();
 
-  const ITEMS_PER_PAGE = 8;
+  // 监听终端大小变化
+  useEffect(() => {
+    const handleResize = () => {
+      setTerminalHeight(getTerminalHeight());
+    };
+
+    process.stdout.on('resize', handleResize);
+    return () => {
+      process.stdout.off('resize', handleResize);
+    };
+  }, []);
+
+  // 动态计算每页显示的项目数量
+  const ITEMS_PER_PAGE = useMemo(() => {
+    // 计算固定UI元素占用的行数：
+    // - 标题: 1行
+    // - 分隔线: 1行 
+    // - 搜索/信息区域: 2-3行
+    // - 分页信息: 1行
+    // - 帮助文本: 1行
+    // - 边距和空行: 3-4行
+    const fixedLines = isSearchMode ? 10 : 9;
+    
+    // 每个对话项占用的行数：
+    // - 普通项: 2行 (名称 + 日期)
+    // - 选中项: 3行 (名称 + 日期 + 路径)
+    // - 项目间距: 1行
+    const linesPerItem = 3; // 按最大情况计算
+    
+    // 计算可用于显示对话项的行数
+    const availableLines = Math.max(terminalHeight - fixedLines, linesPerItem);
+    
+    // 计算最大可显示的项目数量，最少1个，最多不超过原来的8个
+    const maxItems = Math.floor(availableLines / linesPerItem);
+    return Math.max(1, Math.min(maxItems, 8));
+  }, [isSearchMode, terminalHeight]);
 
   const filteredConversations = useMemo(() => {
     if (!searchQuery.trim()) {
@@ -41,6 +82,29 @@ const ConversationSelector: React.FC<ConversationSelectorProps> = ({
     setCurrentPage(0);
     setSelectedIndex(0);
   }, [searchQuery]);
+
+  // 当ITEMS_PER_PAGE变化时，调整当前页面和选中索引
+  useEffect(() => {
+    if (filteredConversations.length === 0) return;
+    
+    // 计算当前选中项应该在哪一页
+    const newPage = Math.floor(selectedIndex / ITEMS_PER_PAGE);
+    const maxPage = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE) - 1;
+    
+    // 确保页面索引在有效范围内
+    const validPage = Math.min(newPage, maxPage);
+    setCurrentPage(validPage);
+    
+    // 如果当前选中的索引超出了新的范围，调整到当前页的最后一项
+    const maxIndexInPage = Math.min(
+      (validPage + 1) * ITEMS_PER_PAGE - 1,
+      filteredConversations.length - 1
+    );
+    
+    if (selectedIndex > maxIndexInPage) {
+      setSelectedIndex(maxIndexInPage);
+    }
+  }, [ITEMS_PER_PAGE, filteredConversations.length, selectedIndex]);
 
   const totalPages = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE);
   const startIndex = currentPage * ITEMS_PER_PAGE;
@@ -315,7 +379,7 @@ export async function selectConversation(
         unmount();
         if (selectedConversation) {
           console.log(
-            `\n✅ Selected: ${selectedConversation.projectName}/${selectedConversation.fileName}`
+            `\nSelected: ${selectedConversation.projectName}/${selectedConversation.fileName}`
           );
           resolve(selectedConversation);
         } else {
