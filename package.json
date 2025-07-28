@@ -11,7 +11,7 @@
     "verify": "bun run scripts/verify-ai-sdk-format.ts",
     "fix": "bun biome check --write",
     "tsc": "tsc",
-    "prepare": "husky"
+    "bumpp": "bumpp"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
@@ -25,6 +25,7 @@
     "@biomejs/biome": "2.1.2",
     "@types/bun": "^1.2.19",
     "@types/json-schema": "^7.0.15",
+    "bumpp": "^10.2.0",
     "husky": "^9.1.7",
     "react-devtools-core": "^6.1.5",
     "typescript": "^5.8.3"

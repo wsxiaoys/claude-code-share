@@ -5,3 +5,7 @@
 [![Bun](https://img.shields.io/badge/Bun-000?style=flat&logo=bun&logoColor=white)](https://bun.sh)
 
 Transform your Claude Code conversations into beautiful, shareable links.
+
+# Usage
+
+`npx claude-code-share`
