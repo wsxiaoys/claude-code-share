@@ -10,4 +10,5 @@ export interface ConversationFile {
   projectName: string;
   fileName: string;
   modifiedTime: Date;
+  firstMessage?: string;
 }
