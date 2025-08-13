@@ -69,7 +69,8 @@ export function findClaudeConversations(): ConversationFile[] {
             projectName,
             fileName,
             modifiedTime: stats.mtime,
-            firstMessage
+            firstMessage,
+            provider: "claude",
           });
         }
       }
