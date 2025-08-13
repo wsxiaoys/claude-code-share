@@ -6,6 +6,7 @@ import type {
 } from "@getpochi/tools";
 import type { TextPart, UIMessage } from "ai";
 import type { ToolInvocationPart } from "@/types";
+import type { ProviderConverter } from "@/types";
 import type {
   BashToolCall,
   BashToolInput,
@@ -595,7 +596,9 @@ function handleUnknownTool(
   };
 }
 
-class ClaudeConverter {
+class ClaudeConverter implements ProviderConverter {
+  name = "claude";
+
   convert(content: string): UIMessage[] {
     try {
       const lines = content.split("\n").filter(Boolean);
