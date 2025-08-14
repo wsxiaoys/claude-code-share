@@ -15,7 +15,7 @@ Transform your Claude Code conversations into beautiful, shareable links.
     First option:
     1. in cluade code type this
 
-    /statusline setup this script scripts/statusline-pochi.sh
+    /statusline setup this script scripts/statusline-pochi.js
 
     2. restart cluade code
 
@@ -29,7 +29,7 @@ Transform your Claude Code conversations into beautiful, shareable links.
     {
       "statusLine": {
         "type": "command",
-        "command": "Your_Project_Path/claude-code-share/scripts/statusline-pochi.sh"
+        "command": "Your_Project_Path/claude-code-share/scripts/statusline-pochi.js"
       }
     }
     ```
