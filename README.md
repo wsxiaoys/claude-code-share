@@ -9,3 +9,27 @@ Transform your Claude Code conversations into beautiful, shareable links.
 # Usage
 
 `npx claude-code-share`
+
+# Claude code Status line setup
+
+    First option:
+    1. in cluade code type this
+
+    /statusline setup this script scripts/statusline-pochi.sh
+
+    2. restart cluade code
+
+    3. done
+
+
+    Second option:
+    1. To setup the status line, you need to add the following to your `/Users/allenz/.claude/settings.json` file:
+
+    ```json
+    {
+      "statusLine": {
+        "type": "command",
+        "command": "Your_Project_Path/claude-code-share/scripts/statusline-pochi.sh"
+      }
+    }
+    ```
