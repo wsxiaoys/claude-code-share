@@ -1,13 +1,6 @@
 #!/bin/bash
 # Claude Code statusline with Pochi share link
-# This script generates and caches Pochi links for conversations
-
-# Cache configuration
-CACHE_DIR="$HOME/.cache/claude-code-share"
-CACHE_EXPIRY=$((24 * 60 * 60)) # 24 hours in seconds
-
-# Ensure cache directory exists
-mkdir -p "$CACHE_DIR"
+# This script generates Pochi links for conversations
 
 # Read JSON input
 input=$(cat)
@@ -20,44 +13,6 @@ get_history_path() { echo "$input" | jq -r '.transcript_path'; }
 MODEL=$(get_model_name)
 PROJECT_DIR=$(get_project_dir)
 HISTORY_PATH=$(get_history_path)
-
-# Function to get file hash
-get_file_hash() {
-    local file="$1"
-    if [ -f "$file" ]; then
-        md5sum "$file" 2>/dev/null | cut -d' ' -f1 || md5 -q "$file" 2>/dev/null || echo "nohash"
-    else
-        echo "nofile"
-    fi
-}
-
-# Function to get cached Pochi link
-get_cached_link() {
-    local history_path="$1"
-    local file_hash=$(get_file_hash "$history_path")
-    local cache_file="$CACHE_DIR/$(basename "$history_path" .jsonl)-${file_hash}.cache"
-    
-    if [ -f "$cache_file" ]; then
-        # Check if cache is not expired (modified within last 24 hours)
-        if [ "$(find "$cache_file" -mtime -1 2>/dev/null)" ]; then
-            cat "$cache_file"
-            return 0
-        else
-            rm -f "$cache_file"
-        fi
-    fi
-    return 1
-}
-
-# Function to save link to cache
-save_to_cache() {
-    local history_path="$1"
-    local pochi_link="$2"
-    local file_hash=$(get_file_hash "$history_path")
-    local cache_file="$CACHE_DIR/$(basename "$history_path" .jsonl)-${file_hash}.cache"
-    
-    echo "$pochi_link" > "$cache_file"
-}
 
 # Function to generate Pochi link
 generate_pochi_link() {
@@ -105,20 +60,12 @@ generate_pochi_link() {
 POCHI_LINK=""
 
 if [ -n "$HISTORY_PATH" ]; then
-    # Try to get cached link first
-    POCHI_LINK=$(get_cached_link "$HISTORY_PATH")
+    # Generate new link
+    POCHI_LINK=$(generate_pochi_link "$HISTORY_PATH")
     
     if [ -z "$POCHI_LINK" ]; then
-        # Generate new link
-        POCHI_LINK=$(generate_pochi_link "$HISTORY_PATH")
-        
-        if [ -n "$POCHI_LINK" ]; then
-            # Save to cache
-            save_to_cache "$HISTORY_PATH" "$POCHI_LINK"
-        else
-            # Debug: Log why link generation failed
-            echo "Debug: Failed to generate Pochi link for $HISTORY_PATH" >&2
-        fi
+        # Debug: Log why link generation failed
+        echo "Debug: Failed to generate Pochi link for $HISTORY_PATH" >&2
     fi
 fi
 
