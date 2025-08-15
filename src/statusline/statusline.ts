@@ -3,7 +3,7 @@ import path from "node:path";
 
 function readPochiLinkFromTemp(sessionId: string): string | null {
   try {
-    const tempFilePath = `/tmp/${sessionId}`;
+    const tempFilePath = `/tmp/ccs/${sessionId}`;
     if (fs.existsSync(tempFilePath)) {
       const link = fs.readFileSync(tempFilePath, "utf8").trim();
       return link || null;

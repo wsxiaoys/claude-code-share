@@ -9,41 +9,48 @@ import { findClaudeConversations, uploadToPochi } from "./index.js";
  */
 export async function handleClaudeCodeEnvironment(): Promise<boolean> {
   // Check if running in Claude Code environment
-  if (process.env.CLAUDECODE !== '1') {
+  if (process.env.CLAUDECODE !== "1") {
     return false;
   }
 
   const conversations = findClaudeConversations();
-  
+
   if (conversations.length === 0) {
     console.log("❌ No Claude Code conversations found.");
     process.exit(1);
   }
-  
+
   // Get the latest conversation (first in sorted array)
   const latestConv = conversations[0];
   if (!latestConv) {
     console.log("❌ No valid conversation found.");
     process.exit(1);
   }
-  
+
   const content = fs.readFileSync(latestConv.path, "utf-8");
   const messages = converters.claude.convert(content);
-  
+
   // Generate share link
   const shareLink = await uploadToPochi(messages);
-  
+
   // Extract sessionId from the conversation file
   const sessionId = extractSessionId(content);
-  
+
   // Save share link to /tmp with sessionId as filename
-  const tmpFilePath = `/tmp/${sessionId}`;
-  fs.writeFileSync(tmpFilePath, shareLink);
+  const tmpDir = "/tmp/ccs";
+  const tmpFilePath = `${tmpDir}/${sessionId}`;
   
+  // Create directory if it doesn't exist
+  if (!fs.existsSync(tmpDir)) {
+    fs.mkdirSync(tmpDir, { recursive: true });
+  }
+  
+  fs.writeFileSync(tmpFilePath, shareLink);
+
   console.log("\n🎉 Success!");
   console.log(`📎 Share link: ${shareLink}`);
   console.log(`💾 Link saved to: ${tmpFilePath}`);
-  
+
   return true;
 }
 
@@ -54,7 +61,7 @@ export async function handleClaudeCodeEnvironment(): Promise<boolean> {
  */
 function extractSessionId(content: string): string {
   try {
-    const lines = content.split('\n').filter(line => line.trim());
+    const lines = content.split("\n").filter((line) => line.trim());
     for (const line of lines) {
       try {
         const parsed = JSON.parse(line);
@@ -68,5 +75,5 @@ function extractSessionId(content: string): string {
   } catch (error) {
     console.error("Error extracting sessionId:", error);
   }
-  return "unknown";
+  return "unknown-sessionId";
 }
