@@ -10,6 +10,8 @@ Transform your Claude Code conversations into beautiful, shareable links.
 
 `npx claude-code-share`
 
+you can use command in claude code type ! npx claude-code-share it will return you the share link for current conversation
+
 # Claude code Status line setup
 
     First option:
