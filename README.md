@@ -15,7 +15,7 @@ Transform your Claude Code conversations into beautiful, shareable links.
     First option:
     1. in cluade code type this
 
-    /statusline setup this script scripts/statusline-pochi.js
+    /statusline setup "npx claude-code-share statusline"
 
     2. restart cluade code
 
@@ -23,13 +23,13 @@ Transform your Claude Code conversations into beautiful, shareable links.
 
 
     Second option:
-    1. To setup the status line, you need to add the following to your `/Users/allenz/.claude/settings.json` file:
+    1. To setup the status line, you need to add the following to your `~/.claude/settings.json` file:
 
     ```json
     {
       "statusLine": {
         "type": "command",
-        "command": "Your_Project_Path/claude-code-share/scripts/statusline-pochi.js"
+        "command": "npx claude-code-share statusline"
       }
     }
     ```
