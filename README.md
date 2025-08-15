@@ -13,11 +13,11 @@ Transform your Claude Code conversations into beautiful, shareable links.
 # Claude code Status line setup
 
     First option:
-    1. in cluade code type this
+    1. in claude code type this
 
     /statusline setup "npx claude-code-share statusline"
 
-    2. restart cluade code
+    2. restart claude code
 
     3. done
 
