@@ -26,7 +26,7 @@ export async function uploadToPochi(messages: UIMessage[]): Promise<string> {
     const result = (await response.json()) as { id?: string };
 
     if (result.id) {
-      return `https://app.getpochi.com/clips/${result.id}`;
+      return `https://cc.getpochi.com/s/${result.id}`;
     } else {
       throw new Error("No clip ID returned from API");
     }
