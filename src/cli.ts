@@ -9,6 +9,7 @@ import {
   selectConversation,
   uploadToPochi,
   getContent,
+  handleClaudeCodeEnvironment,
 } from "./utils/index.js";
 import { processStatusline } from "./statusline/statusline.js";
 
@@ -28,6 +29,11 @@ program
     "The path to the history file. Reads from stdin if not provided."
   )
   .action(async (filePath) => {
+    // Handle Claude Code environment if applicable
+    if (!filePath && await handleClaudeCodeEnvironment()) {
+      return;
+    }
+
     let content: string;
     let messages: UIMessage[];
 
