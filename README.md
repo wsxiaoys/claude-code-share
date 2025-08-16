@@ -9,3 +9,29 @@ Transform your Claude Code conversations into beautiful, shareable links.
 # Usage
 
 `npx claude-code-share`
+
+you can use command in claude code type ! npx claude-code-share it will return you the share link for current conversation
+
+# Claude code Status line setup
+
+    First option:
+    1. in claude code type this
+
+    /statusline setup "npx claude-code-share statusline"
+
+    2. restart claude code
+
+    3. done
+
+
+    Second option:
+    1. To setup the status line, you need to add the following to your `~/.claude/settings.json` file:
+
+    ```json
+    {
+      "statusLine": {
+        "type": "command",
+        "command": "npx claude-code-share statusline"
+      }
+    }
+    ```

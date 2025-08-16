@@ -7,28 +7,26 @@ import type { UIMessage } from "ai";
  */
 export async function uploadToPochi(messages: UIMessage[]): Promise<string> {
   const payload = {
-    data: { messages }
+    data: { messages },
   };
-  
+
   try {
-    console.log("\n🚀 Uploading to Pochi...");
-    
     const response = await fetch("https://app.getpochi.com/api/clips", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(payload),
     });
-    
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
-    const result = await response.json() as { id?: string };
-    
+
+    const result = (await response.json()) as { id?: string };
+
     if (result.id) {
-      return `https://app.getpochi.com/clips/${result.id}`;
+      return `https://cc.getpochi.com/s/${result.id}`;
     } else {
       throw new Error("No clip ID returned from API");
     }
