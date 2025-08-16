@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Text } from "ink";
 import type { ConversationFile } from "../../types.js";
-import { formatDate } from "../../utils/conversation-scanner.js";
+import { formatDate } from "../../utils/index.js";
 import { UI_CONSTANTS } from "../constants.js";
 import fs from "node:fs";
 

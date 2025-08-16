@@ -1,6 +1,6 @@
 import type { ConversationFile } from "../types.js";
 import { render } from "ink";
-import { ConversationSelector } from "./components/ConversationSelector.js";
+import { ConversationSelector } from "./components/conversation-selector.js";
 
 /**
  * Displays conversation list with enhanced interactive features and handles user selection

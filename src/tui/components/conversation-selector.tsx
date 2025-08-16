@@ -1,12 +1,12 @@
 import type { ConversationFile } from "../../types.js";
 import React from "react";
 import { Box, Text } from "ink";
-import { useConversationSelector } from "../hooks/useConversationSelector.js";
-import { SearchBar } from "./SearchBar.js";
-import { ConversationItem } from "./ConversationItem.js";
-import { PaginationInfo } from "./PaginationInfo.js";
-import { HelpText } from "./HelpText.js";
-import { EmptyState } from "./EmptyState.js";
+import { useConversationSelector } from "../hooks/use-conversation-selector.js";
+import { SearchBar } from "./search-bar.js";
+import { ConversationItem } from "./conversation-item.js";
+import { PaginationInfo } from "./pagination-info.js";
+import { HelpText } from "./help-text.js";
+import { EmptyState } from "./empty-state.js";
 import { UI_CONSTANTS } from "../constants.js";
 
 export interface ConversationSelectorProps {
