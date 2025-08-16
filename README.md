@@ -59,6 +59,7 @@ After conversion, the CLI uploads the conversation to Pochi and prints a shareab
 The project is structured so providers are self-contained. To add a new provider, follow these steps:
 
 - Files and folders to look at
+
   - `src/types.ts`
     - Implement the Provider interfaces
       - `Provider`: name, displayName, converter, scanner
@@ -75,14 +76,15 @@ The project is structured so providers are self-contained. To add a new provider
     - Export it via `src/converters/index.ts` if needed, or import directly in your provider module
 
 - Steps
-  1) Implement the scanner in `src/providers/<provider-name>.ts`
+
+  1. Implement the scanner in `src/providers/<provider-name>.ts`
      - Provide `findConversations()` to return `ConversationFile[]`
      - Put any provider-specific discovery (paths, parsing, first message extraction) here
-  2) Implement the converter for the provider’s history format
+  2. Implement the converter for the provider’s history format
      - The converter returns `UIMessage[]` to be uploaded
-  3) Register your provider
+  3. Register your provider
      - Add it to `src/providers/index.ts` in the `providers` map
-  4) Run and test
+  4. Run and test
      - `bun run build`
      - `node dist/cli.js -p <provider-name>`
 
@@ -90,3 +92,30 @@ The project is structured so providers are self-contained. To add a new provider
   - The `extractFirstMessage` method on `ProviderScanner` is optional. Implement if you want a preview string for the TUI list.
   - Set the `provider` field on each `ConversationFile` so the CLI can route to the correct converter when the user selects a conversation.
   - Avoid placing provider-specific code in `src/utils`. Keep scanning logic inside the provider file.
+    `npx claude-code-share`
+
+you can use command in claude code type ! npx claude-code-share it will return you the share link for current conversation
+
+# Claude code Status line setup
+
+    First option:
+    1. in claude code type this
+
+    /statusline setup "npx claude-code-share statusline"
+
+    2. restart claude code
+
+    3. done
+
+
+    Second option:
+    1. To setup the status line, you need to add the following to your `~/.claude/settings.json` file:
+
+    ```json
+    {
+      "statusLine": {
+        "type": "command",
+        "command": "npx claude-code-share statusline"
+      }
+    }
+    ```

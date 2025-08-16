@@ -285,13 +285,21 @@ function handleTodoWrite(
     }
   }
 
+  const todosWithDefaults = (todos || []).map((todo) => ({
+    ...todo,
+    priority:
+      todo.priority && ["low", "medium", "high"].includes(todo.priority)
+        ? todo.priority
+        : ("medium" as const),
+  }));
+
   const invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]> = {
     type: "tool-invocation",
     toolInvocation: {
       state: "result",
       toolCallId: c.id,
       toolName,
-      args: { todos: todos || [] },
+      args: { todos: todosWithDefaults },
       result: {
         success,
       },
