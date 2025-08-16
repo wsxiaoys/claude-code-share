@@ -11,7 +11,7 @@ import {
 } from "./utils/index.js";
 import { getProvider, providers } from "@/providers/index.js";
 import type { ConversationFile } from "@/types.js";
-import { processStatusline } from "./statusline/statusline.js";
+import { processStatusline } from "./status-line/status-line.js";
 
 const program = new Command();
 

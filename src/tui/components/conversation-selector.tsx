@@ -1,7 +1,7 @@
 import type { ConversationFile } from "../../types.js";
 import React from "react";
 import { Box, Text } from "ink";
-import { useConversationSelector } from "../hooks/use-Conversation-Selector.js";
+import { useConversationSelector } from "../hooks/use-conversation-selector.js";
 import { SearchBar } from "./search-bar.js";
 import { ConversationItem } from "./conversation-item.js";
 import { PaginationInfo } from "./pagination-info.js";
