@@ -1,7 +1,8 @@
 import fs from "node:fs";
 import type { UIMessage } from "ai";
 import * as converters from "@/converters";
-import { findClaudeConversations, uploadToPochi } from "./index.js";
+import { uploadToPochi } from "./index.js";
+import { claudeProvider } from "@/providers/claude.js";
 
 /**
  * Handles Claude Code environment detection and automatic share link generation
@@ -13,7 +14,7 @@ export async function handleClaudeCodeEnvironment(): Promise<boolean> {
     return false;
   }
 
-  const conversations = findClaudeConversations();
+  const conversations = claudeProvider.scanner?.findConversations() || [];
 
   if (conversations.length === 0) {
     console.log("❌ No Claude Code conversations found.");
@@ -37,14 +38,7 @@ export async function handleClaudeCodeEnvironment(): Promise<boolean> {
   const sessionId = extractSessionId(content);
 
   // Save share link to /tmp with sessionId as filename
-  const tmpDir = "/tmp/ccs";
-  const tmpFilePath = `${tmpDir}/${sessionId}`;
-  
-  // Create directory if it doesn't exist
-  if (!fs.existsSync(tmpDir)) {
-    fs.mkdirSync(tmpDir, { recursive: true });
-  }
-  
+  const tmpFilePath = `/tmp/ccs/${sessionId}`;
   fs.writeFileSync(tmpFilePath, shareLink);
 
   console.log("\n🎉 Success!");
