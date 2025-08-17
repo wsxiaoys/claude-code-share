@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import * as fs from "node:fs";
 import { Command } from "@commander-js/extra-typings";
 import type { UIMessage } from "ai";
