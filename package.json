@@ -1,11 +1,18 @@
 {
   "name": "claude-code-share",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "type": "module",
   "bin": {
     "claude-code-share": "dist/cli.js",
     "ccs": "dist/cli.js"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wsxiaoys/claude-code-share.git"
+  },
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "build": "bun build src/cli.ts --outfile dist/cli.js --target node",
     "verify": "bun run scripts/verify-ai-sdk-format.ts",
