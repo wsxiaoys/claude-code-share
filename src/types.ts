@@ -1,9 +1,11 @@
-import type { UIMessage } from "ai";
+import type { ClientTools } from "@getpochi/tools";
+import type { InferUITools, UIDataTypes, UIMessage, UIMessagePart } from "ai";
 
-export type ToolInvocationPart = Extract<
-  UIMessage["parts"][number],
-  { type: "tool-invocation" }
->;
+type UITools = InferUITools<ClientTools>;
+
+export type Message = UIMessage<unknown, UIDataTypes, UITools>;
+
+export type UIToolPart<T extends string = string>  = Extract<Message["parts"][number], {type: `tool-${T}`}>;
 
 export interface ConversationFile {
   path: string;
@@ -17,7 +19,7 @@ export interface ConversationFile {
 // Provider abstraction interfaces
 export interface ProviderConverter {
   name: string;
-  convert(content: string): UIMessage[];
+  convert(content: string): Message[];
 }
 
 export interface ProviderScanner {
@@ -29,7 +31,7 @@ export interface ProviderScanner {
 }
 
 export interface Provider {
-  name: string;
+  id: string;
   displayName: string;
   converter: ProviderConverter;
   scanner?: ProviderScanner;

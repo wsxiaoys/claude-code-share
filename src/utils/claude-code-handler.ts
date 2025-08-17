@@ -2,7 +2,7 @@ import fs from "node:fs";
 import type { UIMessage } from "ai";
 import * as converters from "@/converters";
 import { uploadToPochi } from "./index.js";
-import { claudeProvider } from "@/providers/claude.js";
+import { claude } from "@/providers/claude.js";
 
 /**
  * Handles Claude Code environment detection and automatic share link generation
@@ -14,7 +14,7 @@ export async function handleClaudeCodeEnvironment(): Promise<boolean> {
     return false;
   }
 
-  const conversations = claudeProvider.scanner?.findConversations() || [];
+  const conversations = claude.scanner?.findConversations() || [];
 
   if (conversations.length === 0) {
     console.log("❌ No Claude Code conversations found.");

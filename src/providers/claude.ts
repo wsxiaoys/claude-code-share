@@ -109,8 +109,8 @@ class ClaudeScanner implements ProviderScanner {
   }
 }
 
-export const claudeProvider: Provider = {
-  name: "claude",
+export const claude: Provider = {
+  id: "claude",
   displayName: "Claude Code",
   converter: claudeConverter,
   scanner: new ClaudeScanner(),

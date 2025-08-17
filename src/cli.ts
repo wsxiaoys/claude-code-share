@@ -85,7 +85,7 @@ program
       content = fs.readFileSync(selectedConv.path, "utf-8");
 
       // Choose converter based on selected conversation's provider when not explicitly specified
-      const convProviderName = selectedConv.provider || provider.name;
+      const convProviderName = selectedConv.provider || provider.id;
       const convProvider = getProvider(convProviderName);
       messages = convProvider.converter.convert(content);
     }

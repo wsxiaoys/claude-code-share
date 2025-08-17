@@ -1,11 +1,7 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
-import type {
-  ClientToolsType,
-  ServerTools,
-  ToolInvocationUIPart,
-} from "@getpochi/tools";
-import type { TextPart, UIMessage } from "ai";
-import type { ToolInvocationPart } from "@/types";
+import type { ClientTools } from "@getpochi/tools";
+import type { TextPart, UIMessage, UIMessagePart } from "ai";
+import type { Message, UIToolPart } from "@/types";
 import type { ProviderConverter } from "@/types";
 import type {
   BashToolCall,
@@ -70,22 +66,11 @@ function getIsErrorFromToolResult(
 function convertToolCall(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null
-): ToolInvocationPart {
-  const createCallInvocation = (toolName: string): ToolInvocationPart => ({
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "call",
-      toolCallId: c.id,
-      toolName,
-      args: {},
-    },
-  });
-
+): UIToolPart {
   if (c.name === "LS") {
     return handleListFiles(
       c as LSToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -93,7 +78,6 @@ function convertToolCall(
     return handleWriteToFile(
       c as WriteToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -101,7 +85,6 @@ function convertToolCall(
     return handleGlobFiles(
       c as GlobToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -109,15 +92,6 @@ function convertToolCall(
     return handleTodoWrite(
       c as TodoWriteToolCall,
       toolResultItem,
-      createCallInvocation
-    );
-  }
-
-  if (c.name === "WebFetch") {
-    return handleWebFetch(
-      c as WebFetchToolCall,
-      toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -125,7 +99,6 @@ function convertToolCall(
     return handleMultiEdit(
       c as MultiEditToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -133,7 +106,6 @@ function convertToolCall(
     return handleNewTask(
       c as TaskToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -141,7 +113,6 @@ function convertToolCall(
     return handleReadFile(
       c as ReadToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -149,7 +120,6 @@ function convertToolCall(
     return handleApplyDiff(
       c as EditToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
@@ -157,61 +127,64 @@ function convertToolCall(
     return handleExecuteCommand(
       c as BashToolCall,
       toolResultItem,
-      createCallInvocation
     );
   }
 
-  return handleUnknownTool(c, toolResultItem, createCallInvocation);
+  return handleUnknownTool(c, toolResultItem);
 }
 
 function handleListFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "listFiles";
+): UIToolPart<"listFiles"> {
+  const { path } = c.input as LSToolInput;
+  const toolCall = {
+      type: "tool-listFiles" as const,
+      toolCallId: c.id,
+      input: {path},
+  };
 
   if (!toolResultItem) {
-    return createCallInvocation(toolName);
+    return {
+      ...toolCall,
+      state: "input-available"
+    }
   }
 
-  const { path } = c.input as LSToolInput;
-  const invocation: ToolInvocationUIPart<ClientToolsType["listFiles"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { path },
-      result: {
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: {
         files: ((toolResultItem as LSToolResult).toolUseResult || "")
           .split("\n")
           .filter(Boolean),
         isTruncated: false,
-      },
-    },
-  };
-
-  return invocation;
+    }
+  }
 }
 
 function handleWriteToFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "writeToFile";
+): UIToolPart<"writeToFile"> {
+  const { content, file_path: path } = c.input as WriteToolInput;
+  const toolCall = {
+    type: "tool-writeToFile" as const,
+    toolCallId: c.id,
+    input: { content, path },
+  };
 
   if (!toolResultItem) {
-    return createCallInvocation(toolName);
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
-  const { content, file_path: path } = c.input as WriteToolInput;
   const toolResult = (toolResultItem as WriteToolResult).toolUseResult;
   const isError = getIsErrorFromToolResult(toolResultItem);
 
   let success = true;
-
   const result: { success: boolean; error?: string } = { success };
 
   if (isError) {
@@ -221,70 +194,46 @@ function handleWriteToFile(
     }
   }
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["writeToFile"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { content, path },
-      result,
-    },
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: result,
   };
-
-  return invocation;
 }
 
 function handleGlobFiles(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "globFiles";
-
-  if (!toolResultItem) {
-    return createCallInvocation(toolName);
-  }
-
+): UIToolPart<"globFiles"> {
   const { pattern: globPattern, path } = c.input as GlobToolInput;
-  const invocation: ToolInvocationUIPart<ClientToolsType["globFiles"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { globPattern, path },
-      result: {
-        files: (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
-        isTruncated: false,
-      },
-    },
+  const toolCall = {
+    type: "tool-globFiles" as const,
+    toolCallId: c.id,
+    input: { globPattern, path },
   };
 
-  return invocation;
+  if (!toolResultItem) {
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
+  }
+
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: {
+      files: (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
+      isTruncated: false,
+    },
+  };
 }
 
 function handleTodoWrite(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "todoWrite";
-
-  if (!toolResultItem) {
-    return createCallInvocation(toolName);
-  }
-
+): UIToolPart<"todoWrite"> {
   const { todos } = c.input as TodoWriteToolInput;
-  const toolResult = (toolResultItem as TodoWriteToolResult).toolUseResult;
-
-  let success = true;
-  if (typeof toolResult === "object" && toolResult !== null) {
-    if ("success" in toolResult) {
-      success = toolResult.success;
-    }
-  }
-
   const todosWithDefaults = (todos || []).map((todo) => ({
     ...todo,
     priority:
@@ -293,64 +242,38 @@ function handleTodoWrite(
         : ("medium" as const),
   }));
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["todoWrite"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { todos: todosWithDefaults },
-      result: {
-        success,
-      },
-    },
+  const toolCall = {
+    type: "tool-todoWrite" as const,
+    toolCallId: c.id,
+    input: { todos: todosWithDefaults },
   };
-
-  return invocation;
-}
-
-function handleWebFetch(
-  c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "webFetch";
 
   if (!toolResultItem) {
-    return createCallInvocation(toolName);
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
-  const { url } = c.input as WebFetchToolInput;
-  const result =
-    (toolResultItem as WebFetchToolResult).toolUseResult.result || "";
-  const invocation: ToolInvocationUIPart<(typeof ServerTools)["webFetch"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { url },
-      result: {
-        result: result || "",
-        isTruncated: false,
-      },
-    },
-  };
+  const toolResult = (toolResultItem as TodoWriteToolResult).toolUseResult;
+  let success = true;
+  if (typeof toolResult === "object" && toolResult !== null) {
+    if ("success" in toolResult) {
+      success = toolResult.success;
+    }
+  }
 
-  return invocation;
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: { success },
+  };
 }
 
 function handleMultiEdit(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "multiApplyDiff";
-
-  if (!toolResultItem) {
-    return createCallInvocation(toolName);
-  }
-
+): UIToolPart<"multiApplyDiff"> {
   const { file_path: path, edits } = c.input as MultiEditToolInput;
   const formattedEdits = edits.map(
     (edit: { old_string: string; new_string: string }) => ({
@@ -359,8 +282,20 @@ function handleMultiEdit(
     })
   );
 
-  const isError = getIsErrorFromToolResult(toolResultItem);
+  const toolCall = {
+    type: "tool-multiApplyDiff" as const,
+    toolCallId: c.id,
+    input: { path, edits: formattedEdits },
+  };
 
+  if (!toolResultItem) {
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
+  }
+
+  const isError = getIsErrorFromToolResult(toolResultItem);
   let pochiResult;
 
   if (isError) {
@@ -394,102 +329,103 @@ function handleMultiEdit(
     };
   }
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["multiApplyDiff"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { path, edits: formattedEdits },
-      result: pochiResult,
-    },
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: pochiResult,
   };
-
-  return invocation;
 }
 
 function handleNewTask(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "newTask";
+): UIToolPart<"newTask"> {
+  const { description, prompt } = c.input as TaskToolInput;
+  const toolCall = {
+    type: "tool-newTask" as const,
+    toolCallId: c.id,
+    input: { description, prompt },
+  };
 
   if (!toolResultItem) {
-    return createCallInvocation(toolName);
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
-  const { description, prompt } = c.input as TaskToolInput;
   const result = (toolResultItem as TaskToolResult).toolUseResult;
   const content = result.content?.[0]?.text || "";
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["newTask"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { description, prompt },
-      result: { result: content },
-    },
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: { result: content },
   };
-
-  return invocation;
 }
 
 function handleReadFile(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "readFile";
-
-  if (!toolResultItem) {
-    return createCallInvocation(toolName);
-  }
-
+): UIToolPart<"readFile"> {
   const {
     file_path: path,
     offset: startLine,
     limit: endLine,
   } = c.input as ReadToolInput;
+
+  const toolCall = {
+    type: "tool-readFile" as const,
+    toolCallId: c.id,
+    input: { path, startLine, endLine },
+  };
+
+  if (!toolResultItem) {
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
+  }
+
   const result = (toolResultItem as ReadToolResult).toolUseResult;
 
-  const args = { path, startLine, endLine };
-  const resultData = !result.file
-    ? { error: "Error: ENOENT: no such file or directory" }
-    : { content: result.file.content || "", isTruncated: false };
+  const resultData = {
+    error: !result.file ? "Error: ENOENT: no such file or directory": undefined,
+    content: result.file.content || "",
+    isTruncated: false
+  };
 
   return {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args,
-      result: resultData,
-    },
-  } as ToolInvocationUIPart<ClientToolsType["readFile"]>;
+    ...toolCall,
+    state: "output-available",
+    output: resultData,
+  };
 }
 
 function handleApplyDiff(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "applyDiff";
-
-  if (!toolResultItem) {
-    return createCallInvocation(toolName);
-  }
-
+): UIToolPart<"applyDiff"> {
   const {
     file_path: path,
     old_string: searchContent,
     new_string: replaceContent,
   } = c.input as EditToolInput;
-  const toolResult = (toolResultItem as EditToolResult).toolUseResult;
 
+  const toolCall = {
+    type: "tool-applyDiff" as const,
+    toolCallId: c.id,
+    input: { path, searchContent, replaceContent },
+  };
+
+  if (!toolResultItem) {
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
+  }
+
+  const toolResult = (toolResultItem as EditToolResult).toolUseResult;
   let success = false;
   let added = 0;
   let removed = 0;
@@ -520,36 +456,35 @@ function handleApplyDiff(
     },
   };
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["applyDiff"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { path, searchContent, replaceContent },
-      result: result,
-    },
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: result,
   };
-
-  return invocation;
 }
 
 function handleExecuteCommand(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
-  const toolName = "executeCommand";
+): UIToolPart<"executeCommand"> {
+  const toolCall = {
+    type: "tool-executeCommand" as const,
+    toolCallId: c.id,
+    input: { command: (c.input as BashToolInput)?.command || "" },
+  };
 
   if (!toolResultItem) {
-    return createCallInvocation(toolName);
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
   const item = (toolResultItem as BashToolResult).message.content[0];
   const isError = item?.is_error || false;
   const bashResult = (toolResultItem as BashToolResult).toolUseResult;
-
   let result = "";
+
   if (isError) {
     if (typeof bashResult === "string") {
       result = bashResult;
@@ -566,57 +501,55 @@ function handleExecuteCommand(
     }
   }
 
-  const invocation: ToolInvocationUIPart<ClientToolsType["executeCommand"]> = {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName,
-      args: { command: (c.input as BashToolInput)?.command || "" },
-      result: {
-        output: convertToWindowsLineEndings(result || ""),
-        isTruncated: false,
-      },
+  return {
+    ...toolCall,
+    state: "output-available",
+    output: {
+      output: convertToWindowsLineEndings(result || ""),
+      isTruncated: false,
     },
   };
-
-  return invocation;
 }
 
 function handleUnknownTool(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
-  createCallInvocation: (toolName: string) => ToolInvocationPart
-): ToolInvocationPart {
+): UIToolPart {
+  const toolCall = {
+    type: `tool-${c.name}` as const,
+    toolCallId: c.id,
+    input: (c.input as Record<string, unknown>) || {},
+  };
+
   if (!toolResultItem) {
-    return createCallInvocation(c.name);
+    // @ts-ignore
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
+  // @ts-ignore
   return {
-    type: "tool-invocation",
-    toolInvocation: {
-      state: "result",
-      toolCallId: c.id,
-      toolName: c.name,
-      args: (c.input as Record<string, unknown>) || {},
-      result: { output: String(toolResultItem.toolUseResult) || "" },
-    },
+    ...toolCall,
+    state: "output-available",
+    output: { output: String(toolResultItem.toolUseResult) || "" },
   };
 }
 
 class ClaudeConverter implements ProviderConverter {
   name = "claude";
 
-  convert(content: string): UIMessage[] {
+  convert(content: string): Message[] {
     try {
       const lines = content.split("\n").filter(Boolean);
       const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
         JSON.parse(line)
       );
 
-      const extractedMessages: UIMessage[] = parsedData
+      const extractedMessages: Message[] = parsedData
         .map((item, index) => this.parseMessage(item, parsedData, index))
-        .filter((message): message is UIMessage => message !== null);
+        .filter((message): message is Message => message !== null);
 
       return extractedMessages;
     } catch (error) {
@@ -629,7 +562,7 @@ class ClaudeConverter implements ProviderConverter {
     item: ClaudeCodeMessage,
     parsedData: ClaudeCodeMessage[],
     index: number
-  ): UIMessage | null {
+  ): Message | null {
     if (!item.message || typeof item.message !== "object") {
       return null;
     }
@@ -662,8 +595,8 @@ class ClaudeConverter implements ProviderConverter {
     nestedMessage: NestedMessage,
     parsedData: ClaudeCodeMessage[],
     index: number
-  ): UIMessage {
-    const parts: (TextPart | ToolInvocationPart)[] = [];
+  ): Message {
+    const parts: (TextPart | UIToolPart)[] = [];
     let textContent = "";
 
     if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
@@ -727,13 +660,13 @@ class ClaudeConverter implements ProviderConverter {
       content: textContent || "",
       createdAt: new Date(historyItem.timestamp),
       ...(parts.length > 0 && { parts }),
-    } as UIMessage;
+    } as Message;
   }
 
   private parseUserMessage(
     historyItem: ClaudeCodeMessage,
     nestedMessage: NestedMessage
-  ): UIMessage | null {
+  ): Message | null {
     if (
       "content" in nestedMessage &&
       typeof nestedMessage.content === "string"
@@ -744,7 +677,7 @@ class ClaudeConverter implements ProviderConverter {
         content: nestedMessage.content,
         createdAt: new Date(historyItem.timestamp),
         parts: [{ type: "text", text: nestedMessage.content }],
-      } as UIMessage;
+      } as Message;
     }
 
     if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
@@ -787,7 +720,7 @@ class ClaudeConverter implements ProviderConverter {
         content: textContent,
         createdAt: new Date(historyItem.timestamp),
         ...(parts.length > 0 && { parts }),
-      } as UIMessage;
+      } as Message;
     }
 
     return null;
@@ -796,7 +729,7 @@ class ClaudeConverter implements ProviderConverter {
   private parseOtherMessageTypes(
     historyItem: ClaudeCodeMessage,
     nestedMessage: NestedMessage
-  ): UIMessage | null {
+  ): Message | null {
     if (historyItem.type === "result" && "result" in nestedMessage) {
       const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
       return {
@@ -804,7 +737,7 @@ class ClaudeConverter implements ProviderConverter {
         role: "system",
         content,
         parts: [{ type: "text", text: content }],
-      } as UIMessage;
+      } as Message;
     }
 
     if (historyItem.type === "error") {
@@ -814,7 +747,7 @@ class ClaudeConverter implements ProviderConverter {
         role: "system",
         content,
         parts: [{ type: "text", text: content }],
-      } as UIMessage;
+      } as Message;
     }
 
     if (
@@ -830,7 +763,7 @@ class ClaudeConverter implements ProviderConverter {
         role: "system",
         content,
         parts: [{ type: "text", text: content }],
-      } as UIMessage;
+      } as Message;
     }
 
     return null;

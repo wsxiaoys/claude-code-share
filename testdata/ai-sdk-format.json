@@ -30,18 +30,15 @@
     "createdAt": "2025-07-18T15:34:35.801Z",
     "parts": [
       {
-        "type": "tool-invocation",
-        "toolInvocation": {
-          "state": "result",
-          "toolCallId": "toolu_01FD6Mex77EVpecTG5SniRfa",
-          "toolName": "readFile",
-          "args": {
-            "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/README.md"
-          },
-          "result": {
-            "content": "# Claude-code-history-To-Ai-SDK-Parser\n\nClaude code history should be located at your users .claude/projects/\n\n## Get started\n\n1. bun install\n\n### CLI\n\n2. cd HistoryParser\n\n3. bun run index.ts <Your Claude Code History .jsonl> or bun run index.ts example.jsonl\n\n4. Check the result in output\n\n5. bun run test (check if the result format match UIMessage in AI SDK)\n\n### Web page (This give better chat view)\n\n2. cd demo\n\n3. bun run dev\n\n## Project Structure\n\n/demo is the frontend demo page to quickly view the result with ai sdk ui.\n\n/HistoryParser has the script HistoryParser.ts which pass the file.\n",
-            "isTruncated": false
-          }
+        "type": "tool-readFile",
+        "toolCallId": "toolu_01FD6Mex77EVpecTG5SniRfa",
+        "input": {
+          "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/README.md"
+        },
+        "state": "output-available",
+        "output": {
+          "content": "# Claude-code-history-To-Ai-SDK-Parser\n\nClaude code history should be located at your users .claude/projects/\n\n## Get started\n\n1. bun install\n\n### CLI\n\n2. cd HistoryParser\n\n3. bun run index.ts <Your Claude Code History .jsonl> or bun run index.ts example.jsonl\n\n4. Check the result in output\n\n5. bun run test (check if the result format match UIMessage in AI SDK)\n\n### Web page (This give better chat view)\n\n2. cd demo\n\n3. bun run dev\n\n## Project Structure\n\n/demo is the frontend demo page to quickly view the result with ai sdk ui.\n\n/HistoryParser has the script HistoryParser.ts which pass the file.\n",
+          "isTruncated": false
         }
       }
     ]
@@ -53,18 +50,15 @@
     "createdAt": "2025-07-18T15:34:39.202Z",
     "parts": [
       {
-        "type": "tool-invocation",
-        "toolInvocation": {
-          "state": "result",
-          "toolCallId": "toolu_01HpFSBAQFmkPR8REEdxjV3z",
-          "toolName": "readFile",
-          "args": {
-            "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/package.json"
-          },
-          "result": {
-            "content": "{\n  \"name\": \"claude-code-history-to-ai-sdk-parser\",\n  \"private\": true,\n  \"workspaces\": [\n    \"Demo\",\n    \"HistoryParser\"\n  ],\n  \"devDependencies\": {\n    \"@types/bun\": \"latest\"\n  },\n  \"peerDependencies\": {\n    \"typescript\": \"^5\"\n  }\n}\n",
-            "isTruncated": false
-          }
+        "type": "tool-readFile",
+        "toolCallId": "toolu_01HpFSBAQFmkPR8REEdxjV3z",
+        "input": {
+          "path": "/Users/allenz/Documents/Code_Project/Claude-code-history-To-Ai-SDK-Parser/package.json"
+        },
+        "state": "output-available",
+        "output": {
+          "content": "{\n  \"name\": \"claude-code-history-to-ai-sdk-parser\",\n  \"private\": true,\n  \"workspaces\": [\n    \"Demo\",\n    \"HistoryParser\"\n  ],\n  \"devDependencies\": {\n    \"@types/bun\": \"latest\"\n  },\n  \"peerDependencies\": {\n    \"typescript\": \"^5\"\n  }\n}\n",
+          "isTruncated": false
         }
       }
     ]

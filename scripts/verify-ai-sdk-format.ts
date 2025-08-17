@@ -1,5 +1,5 @@
 import fs from "node:fs";
-import type { UIMessage } from "ai";
+import type { Message } from "../src/types";
 import { claude } from "../src/converters/claude";
 
 const inputData = "testdata/example.jsonl";
@@ -28,8 +28,8 @@ try {
   console.log("✅ Array structure: SUCCESS");
   console.log(`📊 Total messages: ${data.length}`);
 
-  // Test TypeScript casting to UIMessage[]
-  const _messages: UIMessage[] = data;
+  // Test TypeScript casting to Message[]
+  const _messages: Message[] = data;
   console.log("✅ TypeScript casting: SUCCESS");
   console.log("");
 
@@ -45,23 +45,25 @@ try {
   };
   const errors: string[] = [];
 
-  data.forEach((msg: UIMessage, i: number) => {
+  data.forEach((msg: Message, i: number) => {
     if (
       typeof msg === "object" &&
       msg !== null &&
       typeof msg.id === "string" &&
       msg.id.trim() !== "" &&
       ["user", "assistant", "system"].includes(msg.role) &&
-      typeof msg.content === "string"
+      Array.isArray(msg.parts)
     ) {
       valid++;
       if (msg.role === "user") stats.user++;
       else if (msg.role === "assistant") stats.assistant++;
       else if (msg.role === "system") stats.system++;
 
-      if (msg.parts && msg.parts.length > 0) stats.withParts++;
-      if (msg.toolInvocations && msg.toolInvocations.length > 0)
-        stats.withToolInvocations++;
+      if (msg.parts && msg.parts.length > 0) {
+        stats.withParts++;
+        if (msg.parts.some((part) => part.type.startsWith("tool-")))
+          stats.withToolInvocations++;
+      }
     } else {
       invalid++;
       errors.push(
@@ -84,15 +86,15 @@ try {
 
   if (invalid === 0) {
     console.log(
-      "🎉 PERFECT! Your file is fully compatible with AI SDK UIMessage!",
+      "🎉 PERFECT! Your file is fully compatible with the new AI SDK Message format!",
     );
     console.log("✅ You can import and use this data directly:");
     console.log("");
     console.log("```typescript");
-    console.log('import { UIMessage } from "ai";');
+    console.log('import type { Message } from "./src/types";');
     console.log('import messages from "./ai-sdk-format.json";');
     console.log("");
-    console.log("const uiMessages: UIMessage[] = messages;");
+    console.log("const uiMessages: Message[] = messages;");
     console.log(
       "// Use with AI SDK functions like generateText, streamText, etc.",
     );
