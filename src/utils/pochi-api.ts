@@ -7,7 +7,7 @@ import type { UIMessage } from "ai";
  */
 export async function uploadToPochi(
   messages: UIMessage[],
-  assistant: "claude-code" | "open-coder" | "gemini-cli",
+  assistant: string,
 ): Promise<string> {
   const payload = {
     data: { messages, assistant },

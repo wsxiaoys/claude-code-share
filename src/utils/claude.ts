@@ -30,7 +30,7 @@ export async function shareActiveConversation(): Promise<void> {
   const messages = claude.convertToMessages(content);
 
   // Generate share link
-  const shareLink = await uploadToPochi(messages);
+  const shareLink = await uploadToPochi(messages, claude.id);
 
   // Extract sessionId from the conversation file
   const sessionId = extractSessionId(content);

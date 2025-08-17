@@ -70,7 +70,7 @@ program
     }
 
     // Always provide share link
-    const shareLink = await uploadToPochi(messages);
+    const shareLink = await uploadToPochi(messages, provider.id);
 
     console.log("\n🎉 Success!");
     console.log(`📎 Share link: ${shareLink}`);
