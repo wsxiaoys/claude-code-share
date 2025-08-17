@@ -1,121 +1,90 @@
-# claude-code-share
+# Claude Code Share
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=flat&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Bun](https://img.shields.io/badge/Bun-000?style=flat&logo=bun&logoColor=white)](https://bun.sh)
 
-Transform your Claude Code conversations into beautiful, shareable links.
+**Transform your Claude Code conversations into beautiful, shareable links.**
 
-## Quick Start
+`claude-code-share` is a command-line tool that makes it easy to share your conversations from Claude Code with others. It provides a simple, interactive interface to select a conversation and generates a short, shareable link that you can send to anyone.
 
-Run with npx (no install required):
+## ✨ Features
 
-- Interactive mode (scans your local conversations and lets you pick one)
+- **Interactive Conversation Selector**: A beautiful, terminal-based UI to browse and select your recent Claude Code conversations.
+- **Shareable Links**: Generates short, clean URLs for your conversations using [Pochi](https://getpochi.com) renderers, which will be open-sourced soon.
+- **Status Line Integration**: Display a share link directly in your Claude Code status line.
 
-  - `npx claude-code-share`
-  - or the short alias: `npx ccs`
+### Usage
 
-- Show help
-  - `npx claude-code-share --help`
+There are several ways to use `claude-code-share`:
 
-## Providers
+#### Interactive Mode
 
-This tool supports multiple providers via the `--provider` option. Currently available:
+This is the easiest way to get started. Simply run the following command in your terminal:
 
-- `claude` (default)
-- `gemini` (experimental placeholder)
+```bash
+npx claude-code-share
+```
 
-If you do not specify `--provider`, by default is claude code
+This will open an interactive menu where you can select the conversation you want to share.
 
-## Where conversations are scanned from
+#### Sharing from a File
 
-- Claude: `~/.claude/projects` (each project folder contains one or more `.jsonl` history files)
+If you have a conversation saved to a file, you can share it directly:
 
-If no conversations are found for your chosen provider, you’ll see a friendly message and the program will exit.
+```bash
+npx claude-code-share /path/to/your/conversation.jsonl
+```
 
-## Usage Examples
+#### Using Stdin
 
-- Interactive selector across all providers
+You can also pipe the contents of a conversation file into the tool:
 
-  - `npx claude-code-share`
+```bash
+cat /path/to/your/conversation.jsonl | npx claude-code-share
+```
 
-- Interactive selector for a specific provider
+This is particularly useful for scripting and automation.
 
-  - `npx claude-code-share -p claude`
-  - `npx claude-code-share -p gemini`
+#### Status Line Integration
 
-- Convert a specific history file
+You can display a share link directly in your Claude Code status line for quick access. To set this up, run the following command within Claude Code:
 
-  - `npx claude-code-share path/to/history.jsonl` (uses the default provider: `claude`)
-  - `npx claude-code-share -p claude path/to/history.jsonl`
+```
+/statusline setup "npx claude-code-share statusline"
+```
 
-- Pipe from stdin
-  - `cat path/to/history.jsonl | npx claude-code-share -p claude`
+After running the command, restart Claude Code, and you will see a share link in the status line, whenever you run `! npx claude-code-share` in the chat, the status line will be updated with the new share link.
 
-After conversion, the CLI uploads the conversation to Pochi and prints a shareable link.
+## 🤝 How to Contribute
 
-## Contributing: Add a new provider
+We welcome contributions from the community! Whether you're fixing a bug, adding a new feature, or improving the documentation, your help is greatly appreciated.
 
-The project is structured so providers are self-contained. To add a new provider, follow these steps:
+### Getting Started
 
-- Files and folders to look at
+To get started with development, you'll need to have [Bun](https://bun.sh/) installed.
 
-  - `src/types.ts`
-    - Implement the Provider interfaces
-      - `Provider`: name, displayName, converter, scanner
-      - `ProviderConverter`: convert(content)
-      - `ProviderScanner`: findConversations(), isInstalled(), getDefaultPath(), extractFirstMessage?(optional)
-  - `src/providers/`
-    - Create a new file `src/providers/<provider-name>.ts`
-    - Export a `<providerName>Provider: Provider` object
-    - Example references:
-      - `src/providers/claude.ts` (full scanner + converter wiring)
-      - `src/providers/index.ts` (registry and getProvider)
-  - `src/converters/`
-    - Implement your provider’s converter under `src/converters/<provider-name>/`
-    - Export it via `src/converters/index.ts` if needed, or import directly in your provider module
+1.  **Clone the repository**:
 
-- Steps
-
-  1. Implement the scanner in `src/providers/<provider-name>.ts`
-     - Provide `findConversations()` to return `ConversationFile[]`
-     - Put any provider-specific discovery (paths, parsing, first message extraction) here
-  2. Implement the converter for the provider’s history format
-     - The converter returns `UIMessage[]` to be uploaded
-  3. Register your provider
-     - Add it to `src/providers/index.ts` in the `providers` map
-  4. Run and test
-     - `bun run build`
-     - `node dist/cli.js -p <provider-name>`
-
-- Notes
-  - The `extractFirstMessage` method on `ProviderScanner` is optional. Implement if you want a preview string for the TUI list.
-  - Set the `provider` field on each `ConversationFile` so the CLI can route to the correct converter when the user selects a conversation.
-  - Avoid placing provider-specific code in `src/utils`. Keep scanning logic inside the provider file.
-    `npx claude-code-share`
-
-you can use command in claude code type ! npx claude-code-share it will return you the share link for current conversation
-
-# Claude code Status line setup
-
-    First option:
-    1. in claude code type this
-
-    /statusline setup "npx claude-code-share statusline"
-
-    2. restart claude code
-
-    3. done
-
-
-    Second option:
-    1. To setup the status line, you need to add the following to your `~/.claude/settings.json` file:
-
-    ```json
-    {
-      "statusLine": {
-        "type": "command",
-        "command": "npx claude-code-share statusline"
-      }
-    }
+    ```bash
+    git clone https://github.com/wsxiaoys/claude-code-share.git
+    cd claude-code-share
     ```
+
+2.  **Install dependencies**:
+
+    ```bash
+    bun install
+    ```
+
+3.  **Run the command**:
+
+    You can run the tool directly from the source code using Bun:
+
+    ```bash
+    bun src/cli.ts
+    ```
+
+### Adding a New Provider
+
+The project is structured to make it easy to add new providers (e.g gemini, opencode). To add a new provider, create a directory for the provider in `src/providers/` and implement the required interfaces (see `src/providers/claude` as references).
