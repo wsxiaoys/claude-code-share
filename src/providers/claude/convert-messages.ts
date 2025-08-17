@@ -361,7 +361,7 @@ function handleReadFile(
     error: !result.file
       ? "Error: ENOENT: no such file or directory"
       : undefined,
-    content: result.file.content || "",
+    content: result.file?.content || "",
     isTruncated: false,
   };
 
