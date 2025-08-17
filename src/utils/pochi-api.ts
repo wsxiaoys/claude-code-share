@@ -5,9 +5,12 @@ import type { UIMessage } from "ai";
  * @param messages Array of UI messages to upload
  * @returns Promise that resolves to the shareable link URL
  */
-export async function uploadToPochi(messages: UIMessage[]): Promise<string> {
+export async function uploadToPochi(
+  messages: UIMessage[],
+  assistant: "claude-code" | "open-coder" | "gemini-cli",
+): Promise<string> {
   const payload = {
-    data: { messages },
+    data: { messages, assistant },
   };
 
   try {
