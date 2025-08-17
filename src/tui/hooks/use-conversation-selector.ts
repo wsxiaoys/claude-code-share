@@ -1,6 +1,6 @@
 import { useApp, useInput } from "ink";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ConversationFile } from "../../types.js";
+import type { Conversation } from "../../types.js";
 
 // Function to get terminal height
 function getTerminalHeight(): number {
@@ -8,8 +8,8 @@ function getTerminalHeight(): number {
 }
 
 export function useConversationSelector(
-  conversations: ConversationFile[],
-  onSelect: (conversation: ConversationFile) => void,
+  conversations: Conversation[],
+  onSelect: (conversation: Conversation) => void,
   onExit: () => void,
 ) {
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -45,9 +45,8 @@ export function useConversationSelector(
     const query = searchQuery.toLowerCase();
     return conversations.filter(
       (conv) =>
-        conv.projectName.toLowerCase().includes(query) ||
-        conv.fileName.toLowerCase().includes(query) ||
-        conv.firstMessage?.toLowerCase().includes(query),
+        conv.path.toLowerCase().includes(query) ||
+        conv.title.toLowerCase().includes(query),
     );
   }, [conversations, searchQuery]);
 

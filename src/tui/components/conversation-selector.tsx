@@ -1,4 +1,4 @@
-import type { ConversationFile } from "../../types.js";
+import type { Conversation } from "../../types.js";
 import React from "react";
 import { Box, Text } from "ink";
 import { useConversationSelector } from "../hooks/use-conversation-selector.js";
@@ -10,8 +10,8 @@ import { EmptyState } from "./empty-state.js";
 import { UI_CONSTANTS } from "../constants.js";
 
 export interface ConversationSelectorProps {
-  conversations: ConversationFile[];
-  onSelect: (conversation: ConversationFile) => void;
+  conversations: Conversation[];
+  onSelect: (conversation: Conversation) => void;
   onExit: () => void;
 }
 

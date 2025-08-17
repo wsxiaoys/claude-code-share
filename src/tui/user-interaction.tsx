@@ -1,4 +1,4 @@
-import type { ConversationFile } from "../types.js";
+import type { Conversation } from "../types.js";
 import { render } from "ink";
 import { ConversationSelector } from "./components/conversation-selector.js";
 
@@ -8,8 +8,8 @@ import { ConversationSelector } from "./components/conversation-selector.js";
  * @returns Promise that resolves to the selected conversation
  */
 export async function selectConversation(
-  conversations: ConversationFile[]
-): Promise<ConversationFile> {
+  conversations: Conversation[]
+): Promise<Conversation> {
   return new Promise((resolve) => {
     // Check if stdin is a TTY (interactive terminal)
     if (!process.stdin.isTTY) {
@@ -24,10 +24,10 @@ export async function selectConversation(
       return;
     }
 
-    let selectedConversation: ConversationFile | null = null;
+    let selectedConversation: Conversation | null = null;
     let hasExited = false;
 
-    const handleSelect = (conversation: ConversationFile) => {
+    const handleSelect = (conversation: Conversation) => {
       selectedConversation = conversation;
       hasExited = true;
     };
@@ -49,9 +49,6 @@ export async function selectConversation(
       if (hasExited) {
         unmount();
         if (selectedConversation) {
-          console.log(
-            `\nSelected: ${selectedConversation.projectName}/${selectedConversation.fileName}`
-          );
           resolve(selectedConversation);
         } else {
           console.log("\n👋 Goodbye!");

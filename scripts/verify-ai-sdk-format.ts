@@ -1,11 +1,11 @@
 import fs from "node:fs";
-import { claude } from "../src/converters/claude";
+import { claude } from "../src/providers/claude";
 import type { Message } from "../src/types";
 
 const inputData = "testdata/example.jsonl";
 const outputData = "testdata/ai-sdk-format.json";
 
-const messages = claude.convert(fs.readFileSync(inputData, "utf-8"));
+const messages = claude.convertToMessages(inputData);
 
 fs.writeFileSync(outputData, JSON.stringify(messages, null, 2), "utf-8");
 

@@ -1,16 +1,15 @@
-#!/usr/bin/env bun
-
-import fs from "node:fs";
+import * as fs from "node:fs";
 import { Command } from "@commander-js/extra-typings";
 import type { UIMessage } from "ai";
-import { getProvider } from "@/providers/index.js";
-import { processStatusline } from "./status-line/status-line.js";
+import { getProvider } from "@/providers";
+import { selectConversation } from "./tui";
 import {
-  getContent,
-  handleClaudeCodeEnvironment,
-  selectConversation,
-  uploadToPochi,
-} from "./utils/index.js";
+  isRunningInClaudeCode,
+  renderStatusLine,
+  shareActiveConversation,
+} from "./utils/claude.js";
+import { readFileOrStdin } from "./utils/file-utils.js";
+import { uploadToPochi } from "./utils/pochi-api.js";
 
 const program = new Command();
 
@@ -32,28 +31,29 @@ program
     "claude",
     "Specify the provider (e.g., claude, gemini)",
   )
-  .action(async (filePath, opts) => {
+  .action(async (filepath, opts) => {
     // Resolve provider with friendly error handling
     const provider = getProvider(opts.provider);
-
-    if (!filePath && (await handleClaudeCodeEnvironment())) {
-      return;
+    if (!filepath) {
+      if (isRunningInClaudeCode()) {
+        await shareActiveConversation();
+        return;
+      }
     }
 
     let content: string;
     let messages: UIMessage[];
 
-    if (filePath) {
+    if (filepath) {
       // Process specific file or stdin
-      content = await getContent(filePath);
-      messages = provider.converter.convert(content);
+      messages = provider.convertToMessages(filepath);
     } else if (!process.stdin.isTTY) {
       // Handle piped input (e.g., npx claude-code-share < file.jsonl)
-      content = await getContent(); // Read from stdin
-      messages = provider.converter.convert(content);
+      content = await readFileOrStdin(); // Read from stdin
+      messages = provider.convertToMessages(content);
     } else {
       // Interactive mode
-      const conversations = provider.scanner.findConversations();
+      const { conversations } = provider;
 
       if (conversations.length === 0) {
         console.log(`❌ No ${provider.displayName} conversations found.`);
@@ -64,7 +64,7 @@ program
       content = fs.readFileSync(selectedConv.path, "utf-8");
 
       // Choose converter based on selected conversation's provider when not explicitly specified
-      messages = provider.converter.convert(content);
+      messages = provider.convertToMessages(content);
     }
 
     // Always provide share link
@@ -92,7 +92,7 @@ program
     process.stdin.on("end", async () => {
       try {
         const data = JSON.parse(input);
-        await processStatusline(data);
+        await renderStatusLine(data);
       } catch (error) {
         console.error(
           "Debug: Failed to parse input JSON:",

@@ -1,6 +1,6 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
 import type { TextPart } from "ai";
-import type { Message, ProviderConverter, UIToolPart } from "@/types";
+import type { Message, UIToolPart } from "@/types";
 import type {
   BashToolCall,
   BashToolInput,
@@ -507,118 +507,167 @@ function handleUnknownTool(
   };
 }
 
-class ClaudeConverter implements ProviderConverter {
-  name = "claude";
+export function convertToMessages(content: string): Message[] {
+  try {
+    const lines = content.split("\n").filter(Boolean);
+    const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
+      JSON.parse(line),
+    );
 
-  convert(content: string): Message[] {
-    try {
-      const lines = content.split("\n").filter(Boolean);
-      const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
-        JSON.parse(line),
-      );
+    const extractedMessages: Message[] = parsedData
+      .map((item, index) => parseMessage(item, parsedData, index))
+      .filter((message): message is Message => message !== null);
 
-      const extractedMessages: Message[] = parsedData
-        .map((item, index) => this.parseMessage(item, parsedData, index))
-        .filter((message): message is Message => message !== null);
-
-      return extractedMessages;
-    } catch (error) {
-      console.error("Error processing content:", error);
-      return [];
-    }
+    return extractedMessages;
+  } catch (error) {
+    console.error("Error processing content:", error);
+    return [];
   }
+}
 
-  private parseMessage(
-    item: ClaudeCodeMessage,
-    parsedData: ClaudeCodeMessage[],
-    index: number,
-  ): Message | null {
-    if (!item.message || typeof item.message !== "object") {
-      return null;
-    }
-
-    if ("uuid" in item) {
-      const nestedMessage = item.message as NestedMessage;
-
-      if ("role" in nestedMessage && "content" in nestedMessage) {
-        if (item.type === "assistant" && nestedMessage.role === "assistant") {
-          return this.parseAssistantMessage(
-            item,
-            nestedMessage,
-            parsedData,
-            index,
-          );
-        }
-
-        if (item.type === "user" && nestedMessage.role === "user") {
-          return this.parseUserMessage(item, nestedMessage);
-        }
-      }
-
-      return this.parseOtherMessageTypes(item, nestedMessage);
-    }
+function parseMessage(
+  item: ClaudeCodeMessage,
+  parsedData: ClaudeCodeMessage[],
+  index: number,
+): Message | null {
+  if (!item.message || typeof item.message !== "object") {
     return null;
   }
 
-  private parseAssistantMessage(
-    historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage,
-    parsedData: ClaudeCodeMessage[],
-    index: number,
-  ): Message {
-    const parts: (TextPart | UIToolPart)[] = [];
-    let textContent = "";
+  if ("uuid" in item) {
+    const nestedMessage = item.message as NestedMessage;
 
-    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
-      nestedMessage.content.forEach(
-        (
-          c:
-            | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam,
-        ) => {
-          if (c.type === "text" && c.text) {
-            textContent += c.text;
-          } else if (c.type === "tool_use" && c.id && c.name) {
-            let toolResultItem: ClaudeCodeMessage | null = null;
-            for (let i = index + 1; i < parsedData.length; i++) {
-              const futureItem = parsedData[i];
-              if (
-                futureItem &&
-                futureItem.type === "user" &&
-                futureItem.message &&
-                typeof futureItem.message === "object" &&
-                "role" in futureItem.message &&
-                futureItem.message.role === "user" &&
-                Array.isArray(futureItem.message.content)
-              ) {
-                const toolResultContent = futureItem.message.content.find(
-                  (
-                    contentPart:
-                      | Anthropic.Messages.ContentBlock
-                      | Anthropic.Messages.ContentBlockParam,
-                  ) =>
-                    contentPart.type === "tool_result" &&
-                    contentPart.tool_use_id === c.id,
-                );
-                if (toolResultContent) {
-                  toolResultItem = futureItem;
-                  break;
-                }
-              }
-            }
+    if ("role" in nestedMessage && "content" in nestedMessage) {
+      if (item.type === "assistant" && nestedMessage.role === "assistant") {
+        return parseAssistantMessage(item, nestedMessage, parsedData, index);
+      }
 
-            const toolInvocation = convertToolCall(
-              c as ClaudeToolCall,
-              toolResultItem,
-            );
-            parts.push(toolInvocation);
-          }
-        },
-      );
+      if (item.type === "user" && nestedMessage.role === "user") {
+        return parseUserMessage(item, nestedMessage);
+      }
     }
 
+    return parseOtherMessageTypes(item, nestedMessage);
+  }
+  return null;
+}
+
+function parseAssistantMessage(
+  historyItem: ClaudeCodeMessage,
+  nestedMessage: NestedMessage,
+  parsedData: ClaudeCodeMessage[],
+  index: number,
+): Message {
+  const parts: (TextPart | UIToolPart)[] = [];
+  let textContent = "";
+
+  if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
+    nestedMessage.content.forEach(
+      (
+        c:
+          | Anthropic.Messages.ContentBlock
+          | Anthropic.Messages.ContentBlockParam,
+      ) => {
+        if (c.type === "text" && c.text) {
+          textContent += c.text;
+        } else if (c.type === "tool_use" && c.id && c.name) {
+          let toolResultItem: ClaudeCodeMessage | null = null;
+          for (let i = index + 1; i < parsedData.length; i++) {
+            const futureItem = parsedData[i];
+            if (
+              futureItem &&
+              futureItem.type === "user" &&
+              futureItem.message &&
+              typeof futureItem.message === "object" &&
+              "role" in futureItem.message &&
+              futureItem.message.role === "user" &&
+              Array.isArray(futureItem.message.content)
+            ) {
+              const toolResultContent = futureItem.message.content.find(
+                (
+                  contentPart:
+                    | Anthropic.Messages.ContentBlock
+                    | Anthropic.Messages.ContentBlockParam,
+                ) =>
+                  contentPart.type === "tool_result" &&
+                  contentPart.tool_use_id === c.id,
+              );
+              if (toolResultContent) {
+                toolResultItem = futureItem;
+                break;
+              }
+            }
+          }
+
+          const toolInvocation = convertToolCall(
+            c as ClaudeToolCall,
+            toolResultItem,
+          );
+          parts.push(toolInvocation);
+        }
+      },
+    );
+  }
+
+  if (textContent) {
+    parts.unshift({
+      type: "text",
+      text: textContent,
+    });
+  }
+
+  return {
+    id: historyItem.uuid,
+    role: "assistant",
+    content: textContent || "",
+    createdAt: new Date(historyItem.timestamp),
+    ...(parts.length > 0 && { parts }),
+  } as Message;
+}
+
+function parseUserMessage(
+  historyItem: ClaudeCodeMessage,
+  nestedMessage: NestedMessage,
+): Message | null {
+  if ("content" in nestedMessage && typeof nestedMessage.content === "string") {
+    return {
+      id: historyItem.uuid,
+      role: "user",
+      content: nestedMessage.content,
+      createdAt: new Date(historyItem.timestamp),
+      parts: [{ type: "text", text: nestedMessage.content }],
+    } as Message;
+  }
+
+  if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
+    if (
+      nestedMessage.content.length === 1 &&
+      nestedMessage.content[0]?.type === "tool_result"
+    ) {
+      return null;
+    }
+
+    const parts: TextPart[] = [];
+    let textContent = "";
+
+    nestedMessage.content.forEach(
+      (
+        c:
+          | Anthropic.Messages.ContentBlock
+          | Anthropic.Messages.ContentBlockParam,
+      ) => {
+        if (c.type === "text" && c.text) {
+          textContent += c.text;
+        } else if (c.type === "image" && c.source) {
+          textContent += `[Image: ${c.source.type}]`;
+        } else if (c.type === "tool_result" && c.content) {
+          textContent += c.content;
+        }
+      },
+    );
+
     if (textContent) {
-      parts.unshift({
+      parts.push({
         type: "text",
         text: textContent,
       });
@@ -626,118 +675,55 @@ class ClaudeConverter implements ProviderConverter {
 
     return {
       id: historyItem.uuid,
-      role: "assistant",
-      content: textContent || "",
+      role: "user",
+      content: textContent,
       createdAt: new Date(historyItem.timestamp),
       ...(parts.length > 0 && { parts }),
     } as Message;
   }
 
-  private parseUserMessage(
-    historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage,
-  ): Message | null {
-    if (
-      "content" in nestedMessage &&
-      typeof nestedMessage.content === "string"
-    ) {
-      return {
-        id: historyItem.uuid,
-        role: "user",
-        content: nestedMessage.content,
-        createdAt: new Date(historyItem.timestamp),
-        parts: [{ type: "text", text: nestedMessage.content }],
-      } as Message;
-    }
-
-    if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
-      if (
-        nestedMessage.content.length === 1 &&
-        nestedMessage.content[0]?.type === "tool_result"
-      ) {
-        return null;
-      }
-
-      const parts: TextPart[] = [];
-      let textContent = "";
-
-      nestedMessage.content.forEach(
-        (
-          c:
-            | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam,
-        ) => {
-          if (c.type === "text" && c.text) {
-            textContent += c.text;
-          } else if (c.type === "image" && c.source) {
-            textContent += `[Image: ${c.source.type}]`;
-          } else if (c.type === "tool_result" && c.content) {
-            textContent += c.content;
-          }
-        },
-      );
-
-      if (textContent) {
-        parts.push({
-          type: "text",
-          text: textContent,
-        });
-      }
-
-      return {
-        id: historyItem.uuid,
-        role: "user",
-        content: textContent,
-        createdAt: new Date(historyItem.timestamp),
-        ...(parts.length > 0 && { parts }),
-      } as Message;
-    }
-
-    return null;
-  }
-
-  private parseOtherMessageTypes(
-    historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage,
-  ): Message | null {
-    if (historyItem.type === "result" && "result" in nestedMessage) {
-      const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
-      return {
-        id: historyItem.uuid,
-        role: "system",
-        content,
-        parts: [{ type: "text", text: content }],
-      } as Message;
-    }
-
-    if (historyItem.type === "error") {
-      const content = "[Error occurred during conversation]";
-      return {
-        id: historyItem.uuid,
-        role: "system",
-        content,
-        parts: [{ type: "text", text: content }],
-      } as Message;
-    }
-
-    if (
-      historyItem.type === "system" &&
-      "subtype" in nestedMessage &&
-      nestedMessage.subtype === "init"
-    ) {
-      const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
-        ", ",
-      )}]`;
-      return {
-        id: historyItem.uuid,
-        role: "system",
-        content,
-        parts: [{ type: "text", text: content }],
-      } as Message;
-    }
-
-    return null;
-  }
+  return null;
 }
 
-export const claude = new ClaudeConverter();
+function parseOtherMessageTypes(
+  historyItem: ClaudeCodeMessage,
+  nestedMessage: NestedMessage,
+): Message | null {
+  if (historyItem.type === "result" && "result" in nestedMessage) {
+    const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
+    return {
+      id: historyItem.uuid,
+      role: "system",
+      content,
+      parts: [{ type: "text", text: content }],
+    } as Message;
+  }
+
+  if (historyItem.type === "error") {
+    const content = "[Error occurred during conversation]";
+    return {
+      id: historyItem.uuid,
+      role: "system",
+      content,
+      parts: [{ type: "text", text: content }],
+    } as Message;
+  }
+
+  if (
+    historyItem.type === "system" &&
+    "subtype" in nestedMessage &&
+    nestedMessage.subtype === "init"
+  ) {
+    const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
+      ", ",
+    )}]`;
+    return {
+      id: historyItem.uuid,
+      role: "system",
+      content,
+      parts: [{ type: "text", text: content }],
+    } as Message;
+  }
+
+  return null;
+}

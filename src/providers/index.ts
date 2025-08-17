@@ -1,5 +1,5 @@
 import type { Provider } from "@/types.js";
-import { claude } from "./claude.js";
+import { claude } from "./claude";
 
 const providers: Record<string, Provider> = {
   [claude.id]: claude,

@@ -1,12 +1,11 @@
 import React from "react";
 import { Box, Text } from "ink";
-import type { ConversationFile } from "../../types.js";
-import { formatDate } from "../../utils/index.js";
+import type { Conversation } from "../../types.js";
 import { UI_CONSTANTS } from "../constants.js";
 import fs from "node:fs";
 
 export interface ConversationItemProps {
-  conversation: ConversationFile;
+  conversation: Conversation;
   isSelected: boolean;
   globalIndex: number;
   isSearchMode: boolean;
@@ -42,7 +41,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           color={isSelected ? UI_CONSTANTS.COLORS.SELECTED_TEXT : UI_CONSTANTS.COLORS.TEXT}
           backgroundColor={isSelected ? UI_CONSTANTS.COLORS.SUCCESS : undefined}
         >
-          {conversation.firstMessage || `${conversation.projectName}/${conversation.fileName}`}
+          {conversation.title}
           {isSelected ? " " : ""}
         </Text>
       </Box>
@@ -53,8 +52,8 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           backgroundColor={isSelected ? UI_CONSTANTS.COLORS.SUCCESS : undefined}
         >
           {isSelected ? UI_CONSTANTS.SPACING.INDENT : UI_CONSTANTS.SPACING.INDENT}
-          {conversation.firstMessage ? `Project: ${conversation.projectName} | ` : ""}Date:{" "}
-          {formatDate(conversation.modifiedTime)}
+          {conversation.title}
+          {formatDate(conversation.mtime)}
           {isSelected ? " " : ""}
         </Text>
       </Box>
@@ -69,3 +68,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
     </Box>
   );
 };
+
+function formatDate(date: Date): string {
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+}
