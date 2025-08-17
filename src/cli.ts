@@ -18,7 +18,7 @@ const program = new Command();
 program
   .name("claude-code-share")
   .description(
-    "Transform your Claude Code conversations into beautiful, shareable links.",
+    "Transform your Claude Code conversations into beautiful, shareable links."
   )
   .version("1.0.0");
 
@@ -26,12 +26,12 @@ program
 program
   .argument(
     "[file]",
-    "The path to the history file. Reads from stdin if not provided.",
+    "The path to the history file. Reads from stdin if not provided."
   )
   .option(
     "-p, --provider <name>",
-    "claude",
     "Specify the provider (e.g., claude, gemini)",
+    "claude" // Default value
   )
   .action(async (filepath, opts) => {
     // Resolve provider with friendly error handling
@@ -98,7 +98,7 @@ program
       } catch (error) {
         console.error(
           "Debug: Failed to parse input JSON:",
-          (error as Error).message,
+          (error as Error).message
         );
         process.exit(1);
       }
