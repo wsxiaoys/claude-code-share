@@ -30,8 +30,8 @@ program
   )
   .option(
     "-p, --provider <name>",
-    "claude",
     "Specify the provider (e.g., claude, gemini)",
+    "claude", // Default value
   )
   .action(async (filepath, opts) => {
     // Resolve provider with friendly error handling
