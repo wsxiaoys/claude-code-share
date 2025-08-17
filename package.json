@@ -1,6 +1,6 @@
 {
   "name": "claude-code-share",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "type": "module",
   "bin": {
     "claude-code-share": "dist/cli.js",
