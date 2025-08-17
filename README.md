@@ -28,6 +28,8 @@ npx claude-code-share
 
 This will open an interactive menu where you can select the conversation you want to share.
 
+> **Note**: You can also use the short alias `npx ccs`.
+
 #### Sharing from a File
 
 If you have a conversation saved to a file, you can share it directly:
