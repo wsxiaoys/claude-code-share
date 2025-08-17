@@ -52,7 +52,6 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           backgroundColor={isSelected ? UI_CONSTANTS.COLORS.SUCCESS : undefined}
         >
           {isSelected ? UI_CONSTANTS.SPACING.INDENT : UI_CONSTANTS.SPACING.INDENT}
-          {conversation.title}
           {formatDate(conversation.mtime)}
           {isSelected ? " " : ""}
         </Text>
