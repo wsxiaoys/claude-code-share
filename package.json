@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.56.0",
+    "@commander-js/extra-typings": "^14.0.0",
     "@getpochi/tools": "^0.1.1",
     "ai": "^5",
     "commander": "^14.0.0",

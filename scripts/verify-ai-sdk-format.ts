@@ -1,6 +1,6 @@
 import fs from "node:fs";
-import type { Message } from "../src/types";
 import { claude } from "../src/converters/claude";
+import type { Message } from "../src/types";
 
 const inputData = "testdata/example.jsonl";
 const outputData = "testdata/ai-sdk-format.json";

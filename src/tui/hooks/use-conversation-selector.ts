@@ -1,16 +1,20 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import { useInput, useApp } from 'ink';
-import type { ConversationFile } from '../../types.js';
+import { useApp, useInput } from "ink";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { ConversationFile } from "../../types.js";
 
 // Function to get terminal height
 function getTerminalHeight(): number {
   return process.stdout.rows || 24; // Default 24 lines
 }
 
-export function useConversationSelector(conversations: ConversationFile[], onSelect: (conversation: ConversationFile) => void, onExit: () => void) {
+export function useConversationSelector(
+  conversations: ConversationFile[],
+  onSelect: (conversation: ConversationFile) => void,
+  onExit: () => void,
+) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [currentPage, setCurrentPage] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [isSearchMode, setIsSearchMode] = useState(false);
   const [terminalHeight, setTerminalHeight] = useState(getTerminalHeight());
   const { exit } = useApp();
@@ -20,9 +24,9 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
       setTerminalHeight(getTerminalHeight());
     };
 
-    process.stdout.on('resize', handleResize);
+    process.stdout.on("resize", handleResize);
     return () => {
-      process.stdout.off('resize', handleResize);
+      process.stdout.off("resize", handleResize);
     };
   }, []);
 
@@ -43,27 +47,28 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
       (conv) =>
         conv.projectName.toLowerCase().includes(query) ||
         conv.fileName.toLowerCase().includes(query) ||
-        (conv.firstMessage && conv.firstMessage.toLowerCase().includes(query))
+        conv.firstMessage?.toLowerCase().includes(query),
     );
   }, [conversations, searchQuery]);
 
   useEffect(() => {
     setCurrentPage(0);
     setSelectedIndex(0);
-  }, [searchQuery]);
+  }, []);
 
   useEffect(() => {
     if (filteredConversations.length === 0) return;
 
     const newPage = Math.floor(selectedIndex / ITEMS_PER_PAGE);
-    const maxPage = Math.ceil(filteredConversations.length / ITEMS_PER_PAGE) - 1;
+    const maxPage =
+      Math.ceil(filteredConversations.length / ITEMS_PER_PAGE) - 1;
 
     const validPage = Math.min(newPage, maxPage);
     setCurrentPage(validPage);
 
     const maxIndexInPage = Math.min(
       (validPage + 1) * ITEMS_PER_PAGE - 1,
-      filteredConversations.length - 1
+      filteredConversations.length - 1,
     );
 
     if (selectedIndex > maxIndexInPage) {
@@ -75,7 +80,7 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
   const startIndex = currentPage * ITEMS_PER_PAGE;
   const endIndex = Math.min(
     startIndex + ITEMS_PER_PAGE,
-    filteredConversations.length
+    filteredConversations.length,
   );
   const pageConversations = filteredConversations.slice(startIndex, endIndex);
 
@@ -99,7 +104,7 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
         setIsSearchMode(false);
       } else if (key.backspace || key.delete) {
         setSearchQuery((prev) => prev.slice(0, -1));
-      } else if (input && input.length === 1 && input >= ' ') {
+      } else if (input && input.length === 1 && input >= " ") {
         setSearchQuery((prev) => prev + input);
       }
       return;
@@ -107,12 +112,12 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
 
     if (key.return) {
       selectCurrent();
-    } else if (input === 'q' || input === 'Q' || (key.ctrl && input === 'c')) {
+    } else if (input === "q" || input === "Q" || (key.ctrl && input === "c")) {
       exit();
       onExit();
-    } else if (input === '/') {
+    } else if (input === "/") {
       setIsSearchMode(true);
-      setSearchQuery('');
+      setSearchQuery("");
     } else if (key.upArrow) {
       setSelectedIndex((prev) => {
         const newIndex = Math.max(0, prev - 1);
@@ -136,7 +141,7 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
         setSelectedIndex((prev) => {
           const newIndex = Math.min(
             prev,
-            newPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE - 1
+            newPage * ITEMS_PER_PAGE + ITEMS_PER_PAGE - 1,
           );
           return Math.max(newIndex, newPage * ITEMS_PER_PAGE);
         });
@@ -151,12 +156,12 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
             newIndex,
             Math.min(
               (newPage + 1) * ITEMS_PER_PAGE - 1,
-              filteredConversations.length - 1
-            )
+              filteredConversations.length - 1,
+            ),
           );
         });
       }
-    } else if (input >= '1' && input <= '9') {
+    } else if (input >= "1" && input <= "9") {
       const num = parseInt(input) - 1;
       if (num < pageConversations.length) {
         setSelectedIndex(startIndex + num);
@@ -173,6 +178,6 @@ export function useConversationSelector(conversations: ConversationFile[], onSel
     totalPages,
     pageConversations,
     filteredConversations,
-    startIndex
+    startIndex,
   };
 }

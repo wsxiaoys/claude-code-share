@@ -12,16 +12,17 @@ function readPochiLinkFromTemp(sessionId: string): string | null {
   } catch (error) {
     console.error(
       "Debug: Failed to read Pochi link from temp file:",
-      (error as Error).message
+      (error as Error).message,
     );
     return null;
   }
 }
 
+// biome-ignore lint/suspicious/noExplicitAny: external data
 export async function processStatusline(data: any): Promise<void> {
   const model = data.model?.display_name || "Unknown";
   const projectDir = data.workspace?.project_dir || "";
-  const historyPath = data.transcript_path || "";
+  const _historyPath = data.transcript_path || "";
   const sessionId = data.session_id || "";
 
   let pochiLink = null;

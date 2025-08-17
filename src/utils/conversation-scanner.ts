@@ -4,5 +4,5 @@
  * @returns Formatted date string
  */
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+  return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
 }

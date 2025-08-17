@@ -6,6 +6,6 @@
     "lineWidth": 80
   },
   "files": {
-    "includes": ["!dist/*"]
+    "includes": ["src/**/*.ts", "scripts/*.ts"]
   }
 }

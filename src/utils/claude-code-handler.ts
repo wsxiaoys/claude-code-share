@@ -1,8 +1,7 @@
 import fs from "node:fs";
-import type { UIMessage } from "ai";
 import * as converters from "@/converters";
-import { uploadToPochi } from "./index.js";
 import { claude } from "@/providers/claude.js";
+import { uploadToPochi } from "./index.js";
 
 /**
  * Handles Claude Code environment detection and automatic share link generation
@@ -62,9 +61,7 @@ function extractSessionId(content: string): string {
         if (parsed.sessionId) {
           return parsed.sessionId;
         }
-      } catch {
-        continue;
-      }
+      } catch {}
     }
   } catch (error) {
     console.error("Error extracting sessionId:", error);

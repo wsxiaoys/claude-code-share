@@ -5,6 +5,7 @@
       "name": "claude-code-history-to-ai-sdk-parser",
       "dependencies": {
         "@anthropic-ai/sdk": "^0.56.0",
+        "@commander-js/extra-typings": "^14.0.0",
         "@getpochi/tools": "^0.1.1",
         "ai": "^5",
         "commander": "^14.0.0",
@@ -52,6 +53,8 @@
     "@biomejs/cli-win32-arm64": ["@biomejs/cli-win32-arm64@2.1.2", "", { "os": "win32", "cpu": "arm64" }, "sha512-G8KWZli5ASOXA3yUQgx+M4pZRv3ND16h77UsdunUL17uYpcL/UC7RkWTdkfvMQvogVsAuz5JUcBDjgZHXxlKoA=="],
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.1.2", "", { "os": "win32", "cpu": "x64" }, "sha512-9zajnk59PMpjBkty3bK2IrjUsUHvqe9HWwyAWQBjGLE7MIBjbX2vwv1XPEhmO2RRuGoTkVx3WCanHrjAytICLA=="],
+
+    "@commander-js/extra-typings": ["@commander-js/extra-typings@14.0.0", "", { "peerDependencies": { "commander": "~14.0.0" } }, "sha512-hIn0ncNaJRLkZrxBIp5AsW/eXEHNKYQBh0aPdoUqNgD+Io3NIykQqpKFyKcuasZhicGaEZJX/JBSIkZ4e5x8Dg=="],
 
     "@getpochi/tools": ["@getpochi/tools@0.1.1", "", { "dependencies": { "@ai-v5-sdk/ai": "npm:ai@5", "json-schema": "^0.4.0", "zod": "^3.25.76" } }, "sha512-JQ/JoBlqlPUs3xUDr8QijMhNYkcZOp0kQieysAYELEi0MUzX9xdM5d3FON1iJDFyjf18inizLv4GuEVxqeIChw=="],
 

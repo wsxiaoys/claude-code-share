@@ -1,8 +1,8 @@
 import fs from "node:fs";
-import path from "node:path";
 import os from "node:os";
-import type { Provider, ProviderScanner, ConversationFile } from "@/types.js";
+import path from "node:path";
 import { claude as claudeConverter } from "@/converters/claude/index.js";
+import type { ConversationFile, Provider, ProviderScanner } from "@/types.js";
 
 class ClaudeScanner implements ProviderScanner {
   name = "claude";
@@ -50,7 +50,7 @@ class ClaudeScanner implements ProviderScanner {
 
     // Sort by modification time (newest first)
     return conversations.sort(
-      (a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime()
+      (a, b) => b.modifiedTime.getTime() - a.modifiedTime.getTime(),
     );
   }
 
@@ -73,34 +73,33 @@ class ClaudeScanner implements ProviderScanner {
           const parsed = JSON.parse(line);
           if (parsed.type === "user" && parsed.message?.content) {
             let message: string;
-            
+
             if (typeof parsed.message.content === "string") {
               message = parsed.message.content;
             } else if (Array.isArray(parsed.message.content)) {
               // Handle array format: [{ "type": "text", "text": "hello" }]
-               const textContent = parsed.message.content
-                 .filter((item: unknown) => 
-                   typeof item === "object" && 
-                   item !== null && 
-                   "type" in item && 
-                   "text" in item && 
-                   item.type === "text" && 
-                   typeof item.text === "string"
-                 )
-                 .map((item: { type: string; text: string }) => item.text)
-                 .join(" ");
+              const textContent = parsed.message.content
+                .filter(
+                  (item: unknown) =>
+                    typeof item === "object" &&
+                    item !== null &&
+                    "type" in item &&
+                    "text" in item &&
+                    item.type === "text" &&
+                    typeof item.text === "string",
+                )
+                .map((item: { type: string; text: string }) => item.text)
+                .join(" ");
               message = textContent || JSON.stringify(parsed.message.content);
             } else {
               message = JSON.stringify(parsed.message.content);
             }
-            
+
             return message.length > 100
-              ? message.substring(0, 100) + "..."
+              ? `${message.substring(0, 100)}...`
               : message;
           }
-        } catch {
-          continue;
-        }
+        } catch {}
       }
     } catch {
       // File read error

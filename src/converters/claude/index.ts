@@ -1,8 +1,6 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
-import type { ClientTools } from "@getpochi/tools";
-import type { TextPart, UIMessage, UIMessagePart } from "ai";
-import type { Message, UIToolPart } from "@/types";
-import type { ProviderConverter } from "@/types";
+import type { TextPart } from "ai";
+import type { Message, ProviderConverter, UIToolPart } from "@/types";
 import type {
   BashToolCall,
   BashToolInput,
@@ -31,9 +29,6 @@ import type {
   TodoWriteToolCall,
   TodoWriteToolInput,
   TodoWriteToolResult,
-  WebFetchToolCall,
-  WebFetchToolInput,
-  WebFetchToolResult,
   WriteToolCall,
   WriteToolInput,
   WriteToolResult,
@@ -44,7 +39,7 @@ function convertToWindowsLineEndings(text: string): string {
 }
 
 function getIsErrorFromToolResult(
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): boolean {
   if (!toolResultItem) return false;
 
@@ -65,69 +60,42 @@ function getIsErrorFromToolResult(
 
 function convertToolCall(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart {
   if (c.name === "LS") {
-    return handleListFiles(
-      c as LSToolCall,
-      toolResultItem,
-    );
+    return handleListFiles(c as LSToolCall, toolResultItem);
   }
 
   if (c.name === "Write") {
-    return handleWriteToFile(
-      c as WriteToolCall,
-      toolResultItem,
-    );
+    return handleWriteToFile(c as WriteToolCall, toolResultItem);
   }
 
   if (c.name === "Glob") {
-    return handleGlobFiles(
-      c as GlobToolCall,
-      toolResultItem,
-    );
+    return handleGlobFiles(c as GlobToolCall, toolResultItem);
   }
 
   if (c.name === "TodoWrite") {
-    return handleTodoWrite(
-      c as TodoWriteToolCall,
-      toolResultItem,
-    );
+    return handleTodoWrite(c as TodoWriteToolCall, toolResultItem);
   }
 
   if (c.name === "MultiEdit") {
-    return handleMultiEdit(
-      c as MultiEditToolCall,
-      toolResultItem,
-    );
+    return handleMultiEdit(c as MultiEditToolCall, toolResultItem);
   }
 
   if (c.name === "Task") {
-    return handleNewTask(
-      c as TaskToolCall,
-      toolResultItem,
-    );
+    return handleNewTask(c as TaskToolCall, toolResultItem);
   }
 
   if (c.name === "Read") {
-    return handleReadFile(
-      c as ReadToolCall,
-      toolResultItem,
-    );
+    return handleReadFile(c as ReadToolCall, toolResultItem);
   }
 
   if (c.name === "Edit") {
-    return handleApplyDiff(
-      c as EditToolCall,
-      toolResultItem,
-    );
+    return handleApplyDiff(c as EditToolCall, toolResultItem);
   }
 
   if (c.name === "Bash") {
-    return handleExecuteCommand(
-      c as BashToolCall,
-      toolResultItem,
-    );
+    return handleExecuteCommand(c as BashToolCall, toolResultItem);
   }
 
   return handleUnknownTool(c, toolResultItem);
@@ -139,28 +107,28 @@ function handleListFiles(
 ): UIToolPart<"listFiles"> {
   const { path } = c.input as LSToolInput;
   const toolCall = {
-      type: "tool-listFiles" as const,
-      toolCallId: c.id,
-      input: {path},
+    type: "tool-listFiles" as const,
+    toolCallId: c.id,
+    input: { path },
   };
 
   if (!toolResultItem) {
     return {
       ...toolCall,
-      state: "input-available"
-    }
+      state: "input-available",
+    };
   }
 
   return {
     ...toolCall,
     state: "output-available",
     output: {
-        files: ((toolResultItem as LSToolResult).toolUseResult || "")
-          .split("\n")
-          .filter(Boolean),
-        isTruncated: false,
-    }
-  }
+      files: ((toolResultItem as LSToolResult).toolUseResult || "")
+        .split("\n")
+        .filter(Boolean),
+      isTruncated: false,
+    },
+  };
 }
 
 function handleWriteToFile(
@@ -184,7 +152,7 @@ function handleWriteToFile(
   const toolResult = (toolResultItem as WriteToolResult).toolUseResult;
   const isError = getIsErrorFromToolResult(toolResultItem);
 
-  let success = true;
+  const success = true;
   const result: { success: boolean; error?: string } = { success };
 
   if (isError) {
@@ -279,7 +247,7 @@ function handleMultiEdit(
     (edit: { old_string: string; new_string: string }) => ({
       searchContent: edit.old_string,
       replaceContent: edit.new_string,
-    })
+    }),
   );
 
   const toolCall = {
@@ -296,10 +264,10 @@ function handleMultiEdit(
   }
 
   const isError = getIsErrorFromToolResult(toolResultItem);
-  let pochiResult;
+  let output: UIToolPart<"multiApplyDiff">["output"];
 
   if (isError) {
-    pochiResult = {
+    output = {
       success: false,
     };
   } else {
@@ -307,7 +275,7 @@ function handleMultiEdit(
     const { added, removed } = toolUseResult.structuredPatch.reduce(
       (
         summary: { added: number; removed: number },
-        patch: { lines: string[] }
+        patch: { lines: string[] },
       ) => {
         patch.lines.forEach((line: string) => {
           if (line.startsWith("+")) summary.added++;
@@ -315,10 +283,10 @@ function handleMultiEdit(
         });
         return summary;
       },
-      { added: 0, removed: 0 }
+      { added: 0, removed: 0 },
     );
 
-    pochiResult = {
+    output = {
       success: true,
       _meta: {
         editSummary: {
@@ -332,7 +300,7 @@ function handleMultiEdit(
   return {
     ...toolCall,
     state: "output-available",
-    output: pochiResult,
+    output,
   };
 }
 
@@ -390,9 +358,11 @@ function handleReadFile(
   const result = (toolResultItem as ReadToolResult).toolUseResult;
 
   const resultData = {
-    error: !result.file ? "Error: ENOENT: no such file or directory": undefined,
+    error: !result.file
+      ? "Error: ENOENT: no such file or directory"
+      : undefined,
     content: result.file.content || "",
-    isTruncated: false
+    isTruncated: false,
   };
 
   return {
@@ -442,7 +412,7 @@ function handleApplyDiff(
         }
         return summary;
       },
-      { added: 0, removed: 0 }
+      { added: 0, removed: 0 },
     ));
   }
 
@@ -544,7 +514,7 @@ class ClaudeConverter implements ProviderConverter {
     try {
       const lines = content.split("\n").filter(Boolean);
       const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
-        JSON.parse(line)
+        JSON.parse(line),
       );
 
       const extractedMessages: Message[] = parsedData
@@ -561,7 +531,7 @@ class ClaudeConverter implements ProviderConverter {
   private parseMessage(
     item: ClaudeCodeMessage,
     parsedData: ClaudeCodeMessage[],
-    index: number
+    index: number,
   ): Message | null {
     if (!item.message || typeof item.message !== "object") {
       return null;
@@ -576,7 +546,7 @@ class ClaudeConverter implements ProviderConverter {
             item,
             nestedMessage,
             parsedData,
-            index
+            index,
           );
         }
 
@@ -594,7 +564,7 @@ class ClaudeConverter implements ProviderConverter {
     historyItem: ClaudeCodeMessage,
     nestedMessage: NestedMessage,
     parsedData: ClaudeCodeMessage[],
-    index: number
+    index: number,
   ): Message {
     const parts: (TextPart | UIToolPart)[] = [];
     let textContent = "";
@@ -604,7 +574,7 @@ class ClaudeConverter implements ProviderConverter {
         (
           c:
             | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam
+            | Anthropic.Messages.ContentBlockParam,
         ) => {
           if (c.type === "text" && c.text) {
             textContent += c.text;
@@ -625,10 +595,10 @@ class ClaudeConverter implements ProviderConverter {
                   (
                     contentPart:
                       | Anthropic.Messages.ContentBlock
-                      | Anthropic.Messages.ContentBlockParam
+                      | Anthropic.Messages.ContentBlockParam,
                   ) =>
                     contentPart.type === "tool_result" &&
-                    contentPart.tool_use_id === c.id
+                    contentPart.tool_use_id === c.id,
                 );
                 if (toolResultContent) {
                   toolResultItem = futureItem;
@@ -639,11 +609,11 @@ class ClaudeConverter implements ProviderConverter {
 
             const toolInvocation = convertToolCall(
               c as ClaudeToolCall,
-              toolResultItem
+              toolResultItem,
             );
             parts.push(toolInvocation);
           }
-        }
+        },
       );
     }
 
@@ -665,7 +635,7 @@ class ClaudeConverter implements ProviderConverter {
 
   private parseUserMessage(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage
+    nestedMessage: NestedMessage,
   ): Message | null {
     if (
       "content" in nestedMessage &&
@@ -695,7 +665,7 @@ class ClaudeConverter implements ProviderConverter {
         (
           c:
             | Anthropic.Messages.ContentBlock
-            | Anthropic.Messages.ContentBlockParam
+            | Anthropic.Messages.ContentBlockParam,
         ) => {
           if (c.type === "text" && c.text) {
             textContent += c.text;
@@ -704,7 +674,7 @@ class ClaudeConverter implements ProviderConverter {
           } else if (c.type === "tool_result" && c.content) {
             textContent += c.content;
           }
-        }
+        },
       );
 
       if (textContent) {
@@ -728,7 +698,7 @@ class ClaudeConverter implements ProviderConverter {
 
   private parseOtherMessageTypes(
     historyItem: ClaudeCodeMessage,
-    nestedMessage: NestedMessage
+    nestedMessage: NestedMessage,
   ): Message | null {
     if (historyItem.type === "result" && "result" in nestedMessage) {
       const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
@@ -756,7 +726,7 @@ class ClaudeConverter implements ProviderConverter {
       nestedMessage.subtype === "init"
     ) {
       const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
-        ", "
+        ", ",
       )}]`;
       return {
         id: historyItem.uuid,

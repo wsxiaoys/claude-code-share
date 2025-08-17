@@ -1,24 +1,23 @@
 #!/usr/bin/env bun
 
 import fs from "node:fs";
+import { Command } from "@commander-js/extra-typings";
 import type { UIMessage } from "ai";
-import { Command } from "commander";
+import { getProvider } from "@/providers/index.js";
+import { processStatusline } from "./status-line/status-line.js";
 import {
-  selectConversation,
-  uploadToPochi,
   getContent,
   handleClaudeCodeEnvironment,
+  selectConversation,
+  uploadToPochi,
 } from "./utils/index.js";
-import { getProvider, providers } from "@/providers/index.js";
-import type { ConversationFile } from "@/types.js";
-import { processStatusline } from "./status-line/status-line.js";
 
 const program = new Command();
 
 program
   .name("claude-code-share")
   .description(
-    "Transform your Claude Code conversations into beautiful, shareable links."
+    "Transform your Claude Code conversations into beautiful, shareable links.",
   )
   .version("1.0.0");
 
@@ -26,22 +25,16 @@ program
 program
   .argument(
     "[file]",
-    "The path to the history file. Reads from stdin if not provided."
+    "The path to the history file. Reads from stdin if not provided.",
   )
   .option(
     "-p, --provider <name>",
-    "Specify the provider (e.g., claude, gemini)"
+    "claude",
+    "Specify the provider (e.g., claude, gemini)",
   )
   .action(async (filePath, opts) => {
     // Resolve provider with friendly error handling
-    let provider;
-    try {
-      provider = getProvider(opts?.provider);
-    } catch (err) {
-      const available = Object.keys(providers).join(", ");
-      console.error(`❌ ${String(err)}. Available providers: ${available}`);
-      process.exit(1);
-    }
+    const provider = getProvider(opts.provider);
 
     if (!filePath && (await handleClaudeCodeEnvironment())) {
       return;
@@ -60,24 +53,10 @@ program
       messages = provider.converter.convert(content);
     } else {
       // Interactive mode
-      let conversations: ConversationFile[] = [];
+      const conversations = provider.scanner.findConversations();
 
-      if (opts?.provider) {
-        // If a provider is specified, use its scanner
-        conversations = provider.scanner?.findConversations() || [];
-      } else {
-        // No provider specified: aggregate conversations from all registered providers
-        for (const p of Object.values(providers)) {
-          const list = p.scanner?.findConversations() || [];
-          if (list.length > 0) conversations.push(...list);
-        }
-      }
-
-      if (!conversations || conversations.length === 0) {
-        const label = opts?.provider
-          ? getProvider(opts.provider).displayName
-          : "any supported";
-        console.log(`❌ No ${label} conversations found.`);
+      if (conversations.length === 0) {
+        console.log(`❌ No ${provider.displayName} conversations found.`);
         process.exit(1);
       }
 
@@ -85,9 +64,7 @@ program
       content = fs.readFileSync(selectedConv.path, "utf-8");
 
       // Choose converter based on selected conversation's provider when not explicitly specified
-      const convProviderName = selectedConv.provider || provider.id;
-      const convProvider = getProvider(convProviderName);
-      messages = convProvider.converter.convert(content);
+      messages = provider.converter.convert(content);
     }
 
     // Always provide share link
@@ -119,7 +96,7 @@ program
       } catch (error) {
         console.error(
           "Debug: Failed to parse input JSON:",
-          (error as Error).message
+          (error as Error).message,
         );
         process.exit(1);
       }
