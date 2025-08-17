@@ -38,6 +38,46 @@ function convertToWindowsLineEndings(text: string): string {
   return text.replace(/\r?\n/g, "\r\n");
 }
 
+function stripCwdPrefix(path: string, cwd: string): string {
+  if (!cwd || !path) return path;
+
+  // Normalize paths by removing trailing slashes
+  const normalizedCwd = cwd.replace(/\/$/, "");
+  const normalizedPath = path.replace(/\/$/, "");
+
+  // If path starts with cwd, remove the cwd prefix
+  if (normalizedPath.startsWith(normalizedCwd)) {
+    const stripped = normalizedPath.slice(normalizedCwd.length);
+    // Remove leading slash if present
+    return stripped.startsWith("/") ? stripped.slice(1) : stripped;
+  }
+
+  return path;
+}
+
+function stripCwdFromArray(items: string[], cwd: string): string[] {
+  return items.map((item) => stripCwdPrefix(item, cwd));
+}
+
+function stripCwdFromText(text: string, cwd: string): string {
+  if (!cwd || !text) return text;
+
+  // Split text into lines, process each line, then rejoin
+  return text
+    .split("\n")
+    .map((line) => {
+      // For each line, try to find and replace cwd prefixes
+      // This handles cases where paths appear in the middle of lines
+      const normalizedCwd = cwd.replace(/\/$/, "");
+      if (line.includes(normalizedCwd)) {
+        return line.replace(new RegExp(normalizedCwd + "/?/", "g"), "");
+      }
+
+      return line;
+    })
+    .join("\n");
+}
+
 function getIsErrorFromToolResult(
   toolResultItem: ClaudeCodeMessage | null
 ): boolean {
@@ -119,13 +159,18 @@ function handleListFiles(
     };
   }
 
+  const cwd = toolResultItem?.cwd || "";
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: ((toolResultItem as LSToolResult).toolUseResult || "")
-        .split("\n")
-        .filter(Boolean),
+      files: stripCwdFromArray(
+        ((toolResultItem as LSToolResult).toolUseResult || "")
+          .split("\n")
+          .filter(Boolean),
+        cwd
+      ),
       isTruncated: false,
     },
   };
@@ -136,10 +181,12 @@ function handleWriteToFile(
   toolResultItem: ClaudeCodeMessage | null
 ): UIToolPart<"writeToFile"> {
   const { content, file_path: path } = c.input as WriteToolInput;
+  const cwd = toolResultItem?.cwd || "";
+  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-writeToFile" as const,
     toolCallId: c.id,
-    input: { content, path },
+    input: { content, path: strippedPath },
   };
 
   if (!toolResultItem) {
@@ -187,11 +234,16 @@ function handleGlobFiles(
     };
   }
 
+  const cwd = toolResultItem?.cwd || "";
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
+      files: stripCwdFromArray(
+        (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
+        cwd
+      ),
       isTruncated: false,
     },
   };
@@ -250,10 +302,12 @@ function handleMultiEdit(
     })
   );
 
+  const cwd = toolResultItem?.cwd || "";
+  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-multiApplyDiff" as const,
     toolCallId: c.id,
-    input: { path, edits: formattedEdits },
+    input: { path: strippedPath, edits: formattedEdits },
   };
 
   if (!toolResultItem) {
@@ -342,10 +396,12 @@ function handleReadFile(
     limit: endLine,
   } = c.input as ReadToolInput;
 
+  const cwd = toolResultItem?.cwd || "";
+  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-readFile" as const,
     toolCallId: c.id,
-    input: { path, startLine, endLine },
+    input: { path: strippedPath, startLine, endLine },
   };
 
   if (!toolResultItem) {
@@ -382,10 +438,12 @@ function handleApplyDiff(
     new_string: replaceContent,
   } = c.input as EditToolInput;
 
+  const cwd = toolResultItem?.cwd || "";
+  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-applyDiff" as const,
     toolCallId: c.id,
-    input: { path, searchContent, replaceContent },
+    input: { path: strippedPath, searchContent, replaceContent },
   };
 
   if (!toolResultItem) {
@@ -471,11 +529,13 @@ function handleExecuteCommand(
     }
   }
 
+  const cwd = toolResultItem?.cwd || "";
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      output: convertToWindowsLineEndings(result || ""),
+      output: convertToWindowsLineEndings(stripCwdFromText(result || "", cwd)),
       isTruncated: false,
     },
   };
