@@ -32,6 +32,7 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
         <Text
           color={isSelected ? UI_CONSTANTS.COLORS.SELECTED_TEXT : UI_CONSTANTS.COLORS.PRIMARY}
           backgroundColor={isSelected ? UI_CONSTANTS.COLORS.SUCCESS : undefined}
+          wrap="truncate"
         >
           {isSelected ? UI_CONSTANTS.SPACING.SELECTION_INDICATOR : UI_CONSTANTS.SPACING.DEFAULT_INDICATOR}
           {globalIndex + 1}.
@@ -40,8 +41,9 @@ export const ConversationItem: React.FC<ConversationItemProps> = ({
           bold={!isSelected}
           color={isSelected ? UI_CONSTANTS.COLORS.SELECTED_TEXT : UI_CONSTANTS.COLORS.TEXT}
           backgroundColor={isSelected ? UI_CONSTANTS.COLORS.SUCCESS : undefined}
+          wrap="truncate"
         >
-          {conversation.title}
+          {conversation.title.replace(/\n/g, ' ').replace(/\r/g, ' ')}
           {isSelected ? " " : ""}
         </Text>
       </Box>
