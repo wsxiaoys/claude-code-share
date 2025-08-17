@@ -38,48 +38,8 @@ function convertToWindowsLineEndings(text: string): string {
   return text.replace(/\r?\n/g, "\r\n");
 }
 
-function stripCwdPrefix(path: string, cwd: string): string {
-  if (!cwd || !path) return path;
-
-  // Normalize paths by removing trailing slashes
-  const normalizedCwd = cwd.replace(/\/$/, "");
-  const normalizedPath = path.replace(/\/$/, "");
-
-  // If path starts with cwd, remove the cwd prefix
-  if (normalizedPath.startsWith(normalizedCwd)) {
-    const stripped = normalizedPath.slice(normalizedCwd.length);
-    // Remove leading slash if present
-    return stripped.startsWith("/") ? stripped.slice(1) : stripped;
-  }
-
-  return path;
-}
-
-function stripCwdFromArray(items: string[], cwd: string): string[] {
-  return items.map((item) => stripCwdPrefix(item, cwd));
-}
-
-function stripCwdFromText(text: string, cwd: string): string {
-  if (!cwd || !text) return text;
-
-  // Split text into lines, process each line, then rejoin
-  return text
-    .split("\n")
-    .map((line) => {
-      // For each line, try to find and replace cwd prefixes
-      // This handles cases where paths appear in the middle of lines
-      const normalizedCwd = cwd.replace(/\/$/, "");
-      if (line.includes(normalizedCwd)) {
-        return line.replace(new RegExp(normalizedCwd + "/?/", "g"), "");
-      }
-
-      return line;
-    })
-    .join("\n");
-}
-
 function getIsErrorFromToolResult(
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): boolean {
   if (!toolResultItem) return false;
 
@@ -100,7 +60,7 @@ function getIsErrorFromToolResult(
 
 function convertToolCall(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart {
   if (c.name === "LS") {
     return handleListFiles(c as LSToolCall, toolResultItem);
@@ -143,7 +103,7 @@ function convertToolCall(
 
 function handleListFiles(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"listFiles"> {
   const { path } = c.input as LSToolInput;
   const toolCall = {
@@ -159,18 +119,13 @@ function handleListFiles(
     };
   }
 
-  const cwd = toolResultItem?.cwd || "";
-
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: stripCwdFromArray(
-        ((toolResultItem as LSToolResult).toolUseResult || "")
-          .split("\n")
-          .filter(Boolean),
-        cwd
-      ),
+      files: ((toolResultItem as LSToolResult).toolUseResult || "")
+        .split("\n")
+        .filter(Boolean),
       isTruncated: false,
     },
   };
@@ -178,15 +133,13 @@ function handleListFiles(
 
 function handleWriteToFile(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"writeToFile"> {
   const { content, file_path: path } = c.input as WriteToolInput;
-  const cwd = toolResultItem?.cwd || "";
-  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-writeToFile" as const,
     toolCallId: c.id,
-    input: { content, path: strippedPath },
+    input: { content, path },
   };
 
   if (!toolResultItem) {
@@ -218,7 +171,7 @@ function handleWriteToFile(
 
 function handleGlobFiles(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"globFiles"> {
   const { pattern: globPattern, path } = c.input as GlobToolInput;
   const toolCall = {
@@ -234,16 +187,11 @@ function handleGlobFiles(
     };
   }
 
-  const cwd = toolResultItem?.cwd || "";
-
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: stripCwdFromArray(
-        (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
-        cwd
-      ),
+      files: (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
       isTruncated: false,
     },
   };
@@ -251,7 +199,7 @@ function handleGlobFiles(
 
 function handleTodoWrite(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"todoWrite"> {
   const { todos } = c.input as TodoWriteToolInput;
   const todosWithDefaults = (todos || []).map((todo) => ({
@@ -292,22 +240,20 @@ function handleTodoWrite(
 
 function handleMultiEdit(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"multiApplyDiff"> {
   const { file_path: path, edits } = c.input as MultiEditToolInput;
   const formattedEdits = edits.map(
     (edit: { old_string: string; new_string: string }) => ({
       searchContent: edit.old_string,
       replaceContent: edit.new_string,
-    })
+    }),
   );
 
-  const cwd = toolResultItem?.cwd || "";
-  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-multiApplyDiff" as const,
     toolCallId: c.id,
-    input: { path: strippedPath, edits: formattedEdits },
+    input: { path, edits: formattedEdits },
   };
 
   if (!toolResultItem) {
@@ -329,7 +275,7 @@ function handleMultiEdit(
     const { added, removed } = toolUseResult.structuredPatch.reduce(
       (
         summary: { added: number; removed: number },
-        patch: { lines: string[] }
+        patch: { lines: string[] },
       ) => {
         patch.lines.forEach((line: string) => {
           if (line.startsWith("+")) summary.added++;
@@ -337,7 +283,7 @@ function handleMultiEdit(
         });
         return summary;
       },
-      { added: 0, removed: 0 }
+      { added: 0, removed: 0 },
     );
 
     output = {
@@ -360,7 +306,7 @@ function handleMultiEdit(
 
 function handleNewTask(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"newTask"> {
   const { description, prompt } = c.input as TaskToolInput;
   const toolCall = {
@@ -388,7 +334,7 @@ function handleNewTask(
 
 function handleReadFile(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"readFile"> {
   const {
     file_path: path,
@@ -396,12 +342,10 @@ function handleReadFile(
     limit: endLine,
   } = c.input as ReadToolInput;
 
-  const cwd = toolResultItem?.cwd || "";
-  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-readFile" as const,
     toolCallId: c.id,
-    input: { path: strippedPath, startLine, endLine },
+    input: { path, startLine, endLine },
   };
 
   if (!toolResultItem) {
@@ -430,7 +374,7 @@ function handleReadFile(
 
 function handleApplyDiff(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"applyDiff"> {
   const {
     file_path: path,
@@ -438,12 +382,10 @@ function handleApplyDiff(
     new_string: replaceContent,
   } = c.input as EditToolInput;
 
-  const cwd = toolResultItem?.cwd || "";
-  const strippedPath = stripCwdPrefix(path, cwd);
   const toolCall = {
     type: "tool-applyDiff" as const,
     toolCallId: c.id,
-    input: { path: strippedPath, searchContent, replaceContent },
+    input: { path, searchContent, replaceContent },
   };
 
   if (!toolResultItem) {
@@ -470,7 +412,7 @@ function handleApplyDiff(
         }
         return summary;
       },
-      { added: 0, removed: 0 }
+      { added: 0, removed: 0 },
     ));
   }
 
@@ -493,7 +435,7 @@ function handleApplyDiff(
 
 function handleExecuteCommand(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"executeCommand"> {
   const toolCall = {
     type: "tool-executeCommand" as const,
@@ -529,13 +471,11 @@ function handleExecuteCommand(
     }
   }
 
-  const cwd = toolResultItem?.cwd || "";
-
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      output: convertToWindowsLineEndings(stripCwdFromText(result || "", cwd)),
+      output: convertToWindowsLineEndings(result || ""),
       isTruncated: false,
     },
   };
@@ -543,7 +483,7 @@ function handleExecuteCommand(
 
 function handleUnknownTool(
   c: ClaudeToolCall,
-  toolResultItem: ClaudeCodeMessage | null
+  toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart {
   const toolCall = {
     type: `tool-${c.name}` as const,
@@ -571,7 +511,7 @@ export function convertToMessages(content: string): Message[] {
   try {
     const lines = content.split("\n").filter(Boolean);
     const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
-      JSON.parse(line)
+      JSON.parse(line),
     );
 
     const extractedMessages: Message[] = parsedData
@@ -588,7 +528,7 @@ export function convertToMessages(content: string): Message[] {
 function parseMessage(
   item: ClaudeCodeMessage,
   parsedData: ClaudeCodeMessage[],
-  index: number
+  index: number,
 ): Message | null {
   if (!item.message || typeof item.message !== "object") {
     return null;
@@ -616,7 +556,7 @@ function parseAssistantMessage(
   historyItem: ClaudeCodeMessage,
   nestedMessage: NestedMessage,
   parsedData: ClaudeCodeMessage[],
-  index: number
+  index: number,
 ): Message {
   const parts: (TextPart | UIToolPart)[] = [];
   let textContent = "";
@@ -626,7 +566,7 @@ function parseAssistantMessage(
       (
         c:
           | Anthropic.Messages.ContentBlock
-          | Anthropic.Messages.ContentBlockParam
+          | Anthropic.Messages.ContentBlockParam,
       ) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
@@ -647,10 +587,10 @@ function parseAssistantMessage(
                 (
                   contentPart:
                     | Anthropic.Messages.ContentBlock
-                    | Anthropic.Messages.ContentBlockParam
+                    | Anthropic.Messages.ContentBlockParam,
                 ) =>
                   contentPart.type === "tool_result" &&
-                  contentPart.tool_use_id === c.id
+                  contentPart.tool_use_id === c.id,
               );
               if (toolResultContent) {
                 toolResultItem = futureItem;
@@ -661,11 +601,11 @@ function parseAssistantMessage(
 
           const toolInvocation = convertToolCall(
             c as ClaudeToolCall,
-            toolResultItem
+            toolResultItem,
           );
           parts.push(toolInvocation);
         }
-      }
+      },
     );
   }
 
@@ -687,7 +627,7 @@ function parseAssistantMessage(
 
 function parseUserMessage(
   historyItem: ClaudeCodeMessage,
-  nestedMessage: NestedMessage
+  nestedMessage: NestedMessage,
 ): Message | null {
   if ("content" in nestedMessage && typeof nestedMessage.content === "string") {
     return {
@@ -714,7 +654,7 @@ function parseUserMessage(
       (
         c:
           | Anthropic.Messages.ContentBlock
-          | Anthropic.Messages.ContentBlockParam
+          | Anthropic.Messages.ContentBlockParam,
       ) => {
         if (c.type === "text" && c.text) {
           textContent += c.text;
@@ -723,7 +663,7 @@ function parseUserMessage(
         } else if (c.type === "tool_result" && c.content) {
           textContent += c.content;
         }
-      }
+      },
     );
 
     if (textContent) {
@@ -747,7 +687,7 @@ function parseUserMessage(
 
 function parseOtherMessageTypes(
   historyItem: ClaudeCodeMessage,
-  nestedMessage: NestedMessage
+  nestedMessage: NestedMessage,
 ): Message | null {
   if (historyItem.type === "result" && "result" in nestedMessage) {
     const content = `[Result] ${nestedMessage.result} (Cost: $${nestedMessage.total_cost_usd})`;
@@ -775,7 +715,7 @@ function parseOtherMessageTypes(
     nestedMessage.subtype === "init"
   ) {
     const content = `[Session initialized with tools: ${nestedMessage.tools?.join(
-      ", "
+      ", ",
     )}]`;
     return {
       id: historyItem.uuid,
