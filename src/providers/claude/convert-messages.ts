@@ -146,10 +146,11 @@ function handleListFiles(
   toolResultItem: ClaudeCodeMessage | null
 ): UIToolPart<"listFiles"> {
   const { path } = c.input as LSToolInput;
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-listFiles" as const,
     toolCallId: c.id,
-    input: { path },
+    input: { path: stripCwdPrefix(path, cwd) },
   };
 
   if (!toolResultItem) {
@@ -159,13 +160,15 @@ function handleListFiles(
     };
   }
 
+  const filesRaw = ((toolResultItem as LSToolResult).toolUseResult || "")
+    .split("\n")
+    .filter(Boolean);
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: ((toolResultItem as LSToolResult).toolUseResult || "")
-        .split("\n")
-        .filter(Boolean),
+      files: stripCwdFromArray(filesRaw, cwd),
       isTruncated: false,
     },
   };
@@ -176,10 +179,11 @@ function handleWriteToFile(
   toolResultItem: ClaudeCodeMessage | null
 ): UIToolPart<"writeToFile"> {
   const { content, file_path: path } = c.input as WriteToolInput;
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-writeToFile" as const,
     toolCallId: c.id,
-    input: { content, path },
+    input: { content, path: stripCwdPrefix(path, cwd) },
   };
 
   if (!toolResultItem) {
@@ -197,7 +201,7 @@ function handleWriteToFile(
 
   if (isError) {
     if (typeof toolResult === "string") {
-      result.error = toolResult;
+      result.error = stripCwdFromText(toolResult, cwd);
       result.success = false;
     }
   }
@@ -214,10 +218,11 @@ function handleGlobFiles(
   toolResultItem: ClaudeCodeMessage | null
 ): UIToolPart<"globFiles"> {
   const { pattern: globPattern, path } = c.input as GlobToolInput;
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-globFiles" as const,
     toolCallId: c.id,
-    input: { globPattern, path },
+    input: { globPattern, path: stripCwdPrefix(path, cwd) },
   };
 
   if (!toolResultItem) {
@@ -227,11 +232,14 @@ function handleGlobFiles(
     };
   }
 
+  const filenames = (toolResultItem as GlobToolResult).toolUseResult
+    .filenames || [];
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      files: (toolResultItem as GlobToolResult).toolUseResult.filenames || [],
+      files: stripCwdFromArray(filenames, cwd),
       isTruncated: false,
     },
   };
@@ -290,10 +298,11 @@ function handleMultiEdit(
     })
   );
 
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-multiApplyDiff" as const,
     toolCallId: c.id,
-    input: { path, edits: formattedEdits },
+    input: { path: stripCwdPrefix(path, cwd), edits: formattedEdits },
   };
 
   if (!toolResultItem) {
@@ -382,10 +391,11 @@ function handleReadFile(
     limit: endLine,
   } = c.input as ReadToolInput;
 
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-readFile" as const,
     toolCallId: c.id,
-    input: { path, startLine, endLine },
+    input: { path: stripCwdPrefix(path, cwd), startLine, endLine },
   };
 
   if (!toolResultItem) {
@@ -422,10 +432,11 @@ function handleApplyDiff(
     new_string: replaceContent,
   } = c.input as EditToolInput;
 
+  const cwd = toolResultItem?.cwd || "";
   const toolCall = {
     type: "tool-applyDiff" as const,
     toolCallId: c.id,
-    input: { path, searchContent, replaceContent },
+    input: { path: stripCwdPrefix(path, cwd), searchContent, replaceContent },
   };
 
   if (!toolResultItem) {
@@ -505,17 +516,20 @@ function handleExecuteCommand(
       bashResult !== null &&
       "stdout" in bashResult
     ) {
-      result = bashResult.stdout || "";
+      result = (bashResult as { stdout?: string }).stdout || "";
     } else if (typeof bashResult === "string") {
       result = bashResult;
     }
   }
 
+  const cwd = toolResultItem?.cwd || "";
+  const cleaned = stripCwdFromText(result || "", cwd);
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      output: convertToWindowsLineEndings(result || ""),
+      output: convertToWindowsLineEndings(cleaned),
       isTruncated: false,
     },
   };
@@ -539,11 +553,12 @@ function handleUnknownTool(
     };
   }
 
+  const cwd = toolResultItem?.cwd || "";
   // @ts-ignore
   return {
     ...toolCall,
     state: "output-available",
-    output: { output: String(toolResultItem.toolUseResult) || "" },
+    output: { output: stripCwdFromText(String(toolResultItem.toolUseResult) || "", cwd) },
   };
 }
 
