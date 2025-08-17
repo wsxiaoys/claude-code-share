@@ -1,3 +1,4 @@
+import os from "node:os"
 import fs from "node:fs";
 import path from "node:path";
 import { claude } from "@/providers/claude";
@@ -36,7 +37,8 @@ export async function shareActiveConversation(): Promise<void> {
   const sessionId = extractSessionId(content);
 
   // Save share link to /tmp with sessionId as filename
-  const tmpFilePath = `/tmp/ccs/${sessionId}`;
+  const tmpFilePath = path.join(os.tmpdir(), "ccs", sessionId);
+  fs.mkdirSync(path.dirname(tmpFilePath), { recursive: true });
   fs.writeFileSync(tmpFilePath, shareLink);
 
   console.log("\n🎉 Success!");
@@ -68,7 +70,7 @@ function extractSessionId(content: string): string {
 
 function readPochiLinkFromTemp(sessionId: string): string | null {
   try {
-    const tempFilePath = `/tmp/ccs/${sessionId}`;
+    const tempFilePath = path.join(os.tmpdir(), "ccs", sessionId);
     if (fs.existsSync(tempFilePath)) {
       const link = fs.readFileSync(tempFilePath, "utf8").trim();
       return link || null;
