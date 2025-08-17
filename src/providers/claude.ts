@@ -72,10 +72,28 @@ class ClaudeScanner implements ProviderScanner {
         try {
           const parsed = JSON.parse(line);
           if (parsed.type === "user" && parsed.message?.content) {
-            const message =
-              typeof parsed.message.content === "string"
-                ? parsed.message.content
-                : JSON.stringify(parsed.message.content);
+            let message: string;
+            
+            if (typeof parsed.message.content === "string") {
+              message = parsed.message.content;
+            } else if (Array.isArray(parsed.message.content)) {
+              // Handle array format: [{ "type": "text", "text": "hello" }]
+               const textContent = parsed.message.content
+                 .filter((item: unknown) => 
+                   typeof item === "object" && 
+                   item !== null && 
+                   "type" in item && 
+                   "text" in item && 
+                   item.type === "text" && 
+                   typeof item.text === "string"
+                 )
+                 .map((item: { type: string; text: string }) => item.text)
+                 .join(" ");
+              message = textContent || JSON.stringify(parsed.message.content);
+            } else {
+              message = JSON.stringify(parsed.message.content);
+            }
+            
             return message.length > 100
               ? message.substring(0, 100) + "..."
               : message;
