@@ -70,9 +70,8 @@ function stripCwdFromText(text: string, cwd: string): string {
       // This handles cases where paths appear in the middle of lines
       const normalizedCwd = cwd.replace(/\/$/, "");
       if (line.includes(normalizedCwd)) {
-        return line.replace(new RegExp(normalizedCwd + "/?/", "g"), "");
+        return line.replace(new RegExp(`${normalizedCwd}/?/`, "g"), "");
       }
-
       return line;
     })
     .join("\n");
@@ -232,8 +231,8 @@ function handleGlobFiles(
     };
   }
 
-  const filenames = (toolResultItem as GlobToolResult).toolUseResult
-    .filenames || [];
+  const filenames =
+    (toolResultItem as GlobToolResult).toolUseResult.filenames || [];
 
   return {
     ...toolCall,
@@ -558,7 +557,9 @@ function handleUnknownTool(
   return {
     ...toolCall,
     state: "output-available",
-    output: { output: stripCwdFromText(String(toolResultItem.toolUseResult) || "", cwd) },
+    output: {
+      output: stripCwdFromText(String(toolResultItem.toolUseResult) || "", cwd),
+    },
   };
 }
 
