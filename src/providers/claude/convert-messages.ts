@@ -38,6 +38,7 @@ import {
   initializeChainTracking,
   cleanupChainTracking,
   getGlobalUsedChains,
+  type SubTask,
 } from "./subtask-processor";
 
 function convertToWindowsLineEndings(text: string): string {

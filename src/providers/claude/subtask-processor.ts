@@ -1,4 +1,22 @@
+import type { Anthropic } from "@anthropic-ai/sdk";
 import type { ClaudeCodeMessage } from "./types";
+import type { Message } from "@/types";
+
+// Todo interface matching the expected structure
+interface Todo {
+  status: "pending" | "in-progress" | "completed" | "cancelled";
+  id: string;
+  content: string;
+  priority: "low" | "medium" | "high";
+}
+
+// SubTask interface that matches the expected structure
+export interface SubTask {
+  uid: string;
+  clientTaskId: string;
+  messages: Message[];
+  todos: Todo[];
+}
 
 // Global state for tracking used chains across the entire conversion
 let globalUsedChains: Set<string> | null = null;
@@ -124,18 +142,25 @@ function findSubtaskMessagesForTask(
             return content.includes(taskToolCallId);
           }
           if (Array.isArray(content)) {
-            return content.some((c: any) => {
-              if (c.type === "text" && c.text) {
-                return c.text.includes(taskToolCallId);
+            return content.some(
+              (
+                c:
+                  | Anthropic.Messages.ContentBlock
+                  | Anthropic.Messages.ContentBlockParam
+              ) => {
+                if (c.type === "text" && "text" in c && c.text) {
+                  return c.text.includes(taskToolCallId);
+                }
+                if (
+                  c.type === "tool_result" &&
+                  "tool_use_id" in c &&
+                  c.tool_use_id === taskToolCallId
+                ) {
+                  return true;
+                }
+                return false;
               }
-              if (
-                c.type === "tool_result" &&
-                c.tool_use_id === taskToolCallId
-              ) {
-                return true;
-              }
-              return false;
-            });
+            );
           }
         }
         return false;
@@ -195,13 +220,8 @@ export function extractSubtaskData(
     parsedData: ClaudeCodeMessage[],
     index: number,
     options?: { includeSidechain?: boolean }
-  ) => any
-): {
-  uid: string;
-  clientTaskId: string;
-  messages: any[];
-  todos: any[];
-} | null {
+  ) => Message | null
+): SubTask | null {
   const subtaskMessages = findSubtaskMessagesForTask(
     taskToolCallId,
     parsedData,
@@ -218,10 +238,10 @@ export function extractSubtaskData(
     .map((item, index) =>
       parseMessage(item, subtaskMessages, index, { includeSidechain: true })
     )
-    .filter((message): message is any => message !== null);
+    .filter((message): message is Message => message !== null);
 
   // Extract todos from TodoWrite tool calls in subtask messages
-  const todos: any[] = [];
+  const todos: Todo[] = [];
   subtaskMessages.forEach((message) => {
     if (
       message.message &&
@@ -230,15 +250,45 @@ export function extractSubtaskData(
     ) {
       const content = message.message.content;
       if (Array.isArray(content)) {
-        content.forEach((c: any) => {
-          if (
-            c.type === "tool_use" &&
-            c.name === "TodoWrite" &&
-            c.input?.todos
-          ) {
-            todos.push(...c.input.todos);
+        content.forEach(
+          (
+            c:
+              | Anthropic.Messages.ContentBlock
+              | Anthropic.Messages.ContentBlockParam
+          ) => {
+            if (
+              c.type === "tool_use" &&
+              "name" in c &&
+              c.name === "TodoWrite" &&
+              "input" in c &&
+              c.input &&
+              typeof c.input === "object" &&
+              "todos" in c.input &&
+              Array.isArray(c.input.todos)
+            ) {
+              // Type guard and filter valid todos
+              const validTodos = c.input.todos.filter(
+                (todo: unknown): todo is Todo => {
+                  if (typeof todo !== "object" || todo === null) {
+                    return false;
+                  }
+                  const todoObj = todo as Record<string, unknown>;
+                  return (
+                    "status" in todoObj &&
+                    "id" in todoObj &&
+                    "content" in todoObj &&
+                    "priority" in todoObj &&
+                    typeof todoObj.status === "string" &&
+                    typeof todoObj.id === "string" &&
+                    typeof todoObj.content === "string" &&
+                    typeof todoObj.priority === "string"
+                  );
+                }
+              );
+              todos.push(...validTodos);
+            }
           }
-        });
+        );
       }
     }
   });
