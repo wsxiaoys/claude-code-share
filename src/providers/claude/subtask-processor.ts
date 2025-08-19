@@ -31,7 +31,7 @@ export function getGlobalUsedChains(): Set<string> | null {
  */
 function buildSubtaskChains(
   parsedData: ClaudeCodeMessage[],
-  startIndex: number
+  startIndex: number,
 ): Map<string, ClaudeCodeMessage[]> {
   const subtaskChains = new Map<string, ClaudeCodeMessage[]>();
   const sidechainMessages = parsedData
@@ -47,7 +47,7 @@ function buildSubtaskChains(
         chain,
         headMessage.uuid,
         sidechainMessages,
-        headIndex
+        headIndex,
       );
       subtaskChains.set(headMessage.uuid, chain);
     }
@@ -63,13 +63,13 @@ function buildChainRecursively(
   chain: ClaudeCodeMessage[],
   parentUuid: string,
   allSidechainMessages: { message: ClaudeCodeMessage; index: number }[],
-  afterIndex: number
+  afterIndex: number,
 ): void {
   // Find all direct children of this parent that appear after the current position
   const children = allSidechainMessages
     .filter(
       ({ message, index }) =>
-        message.parentUuid === parentUuid && index > afterIndex
+        message.parentUuid === parentUuid && index > afterIndex,
     )
     .sort((a, b) => a.index - b.index); // Ensure temporal ordering
 
@@ -81,7 +81,7 @@ function buildChainRecursively(
       chain,
       childMessage.uuid,
       allSidechainMessages,
-      childIndex
+      childIndex,
     );
   }
 }
@@ -91,7 +91,7 @@ function buildChainRecursively(
  */
 function hasTaskReference(
   msg: ClaudeCodeMessage,
-  taskToolCallId: string
+  taskToolCallId: string,
 ): boolean {
   if (
     !msg.message ||
@@ -135,7 +135,7 @@ function findSubtaskMessagesForTask(
   taskToolCallId: string,
   parsedData: ClaudeCodeMessage[],
   startIndex: number,
-  usedChains: Set<string>
+  usedChains: Set<string>,
 ): ClaudeCodeMessage[] {
   const subtaskChains = buildSubtaskChains(parsedData, startIndex);
 
@@ -143,7 +143,7 @@ function findSubtaskMessagesForTask(
   for (const [chainId, messages] of subtaskChains) {
     if (!usedChains.has(chainId)) {
       const hasReference = messages.some((msg) =>
-        hasTaskReference(msg, taskToolCallId)
+        hasTaskReference(msg, taskToolCallId),
       );
       if (hasReference) {
         usedChains.add(chainId);
@@ -158,10 +158,10 @@ function findSubtaskMessagesForTask(
     .filter(([chainId]) => !usedChains.has(chainId))
     .sort(([, messagesA], [, messagesB]) => {
       const indexA = parsedData.findIndex(
-        (msg) => msg?.uuid === messagesA[0]?.uuid
+        (msg) => msg?.uuid === messagesA[0]?.uuid,
       );
       const indexB = parsedData.findIndex(
-        (msg) => msg?.uuid === messagesB[0]?.uuid
+        (msg) => msg?.uuid === messagesB[0]?.uuid,
       );
       return indexA - indexB;
     });
@@ -247,14 +247,14 @@ export function extractSubtaskData(
     item: ClaudeCodeMessage,
     parsedData: ClaudeCodeMessage[],
     index: number,
-    options?: { includeSidechain?: boolean }
-  ) => Message | null
+    options?: { includeSidechain?: boolean },
+  ) => Message | null,
 ): SubTask | null {
   const subtaskMessages = findSubtaskMessagesForTask(
     taskToolCallId,
     parsedData,
     startIndex,
-    usedChains
+    usedChains,
   );
 
   if (subtaskMessages.length === 0) {
@@ -266,7 +266,7 @@ export function extractSubtaskData(
   const messages = subtaskMessages
     .map((item) => {
       const originalIndex = parsedData.findIndex(
-        (msg) => msg?.uuid === item.uuid
+        (msg) => msg?.uuid === item.uuid,
       );
       return parseMessage(item, parsedData, originalIndex, {
         includeSidechain: true,
