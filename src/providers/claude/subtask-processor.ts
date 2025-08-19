@@ -1,22 +1,7 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
+import type { Todo, SubTask } from "@getpochi/tools";
 import type { ClaudeCodeMessage } from "./types";
 import type { Message } from "@/types";
-
-// Todo interface matching the expected structure
-interface Todo {
-  status: "pending" | "in-progress" | "completed" | "cancelled";
-  id: string;
-  content: string;
-  priority: "low" | "medium" | "high";
-}
-
-// SubTask interface that matches the expected structure
-export interface SubTask {
-  uid: string;
-  clientTaskId: string;
-  messages: Message[];
-  todos: Todo[];
-}
 
 // Global state for tracking used chains across the entire conversion
 let globalUsedChains: Set<string> | null = null;
