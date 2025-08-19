@@ -677,7 +677,7 @@ function parseAssistantMessage(
   nestedMessage: NestedMessage,
   parsedData: ClaudeCodeMessage[],
   index: number,
-  options?: { includeSidechain?: boolean },
+  _options?: { includeSidechain?: boolean },
 ): Message {
   const parts: (TextPart | UIToolPart)[] = [];
   let textContent = "";
