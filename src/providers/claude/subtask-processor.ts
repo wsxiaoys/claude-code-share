@@ -1,7 +1,6 @@
-import type { Anthropic } from "@anthropic-ai/sdk";
-import type { Todo, SubTask } from "@getpochi/tools";
-import type { ClaudeCodeMessage } from "./types";
+import type { SubTask, Todo } from "@getpochi/tools";
 import type { Message } from "@/types";
+import type { ClaudeCodeMessage } from "./types";
 
 // Global state for tracking used chains across the entire conversion
 let globalUsedChains: Set<string> | null = null;
