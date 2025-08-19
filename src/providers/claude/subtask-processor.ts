@@ -50,36 +50,22 @@ function buildSubtaskChains(
   startIndex: number
 ): Map<string, ClaudeCodeMessage[]> {
   const subtaskChains = new Map<string, ClaudeCodeMessage[]>();
+  const sidechainMessages = parsedData
+    .slice(startIndex)
+    .map((message, idx) => ({ message, index: startIndex + idx }))
+    .filter(({ message }) => message?.isSidechain);
 
-  // First pass: Find all sidechain messages with their indices
-  const sidechainMessages: { message: ClaudeCodeMessage; index: number }[] = [];
-  for (let i = startIndex; i < parsedData.length; i++) {
-    const message = parsedData[i];
-    if (message && message.isSidechain) {
-      sidechainMessages.push({ message, index: i });
-    }
-  }
-
-  // Find all chain heads (parentUuid === null)
-  const chainHeads = sidechainMessages.filter(
-    ({ message }) => message.parentUuid === null
-  );
-
-  // For each chain head, build its complete chain
-  for (const { message: headMessage, index: headIndex } of chainHeads) {
-    const chain: ClaudeCodeMessage[] = [headMessage];
-    const chainId = headMessage.uuid;
-
-    // Build the chain by finding all descendants in temporal order
-    buildChainRecursively(
-      chain,
-      headMessage.uuid,
-      sidechainMessages,
-      headIndex
-    );
-
-    if (chain.length > 0) {
-      subtaskChains.set(chainId, chain);
+  // Build chains for each head (parentUuid === null)
+  for (const { message: headMessage, index: headIndex } of sidechainMessages) {
+    if (headMessage.parentUuid === null) {
+      const chain = [headMessage];
+      buildChainRecursively(
+        chain,
+        headMessage.uuid,
+        sidechainMessages,
+        headIndex
+      );
+      subtaskChains.set(headMessage.uuid, chain);
     }
   }
 
@@ -117,6 +103,45 @@ function buildChainRecursively(
 }
 
 /**
+ * Check if a message references a specific task tool call ID
+ */
+function hasTaskReference(
+  msg: ClaudeCodeMessage,
+  taskToolCallId: string
+): boolean {
+  if (
+    !msg.message ||
+    typeof msg.message !== "object" ||
+    !("content" in msg.message)
+  ) {
+    return false;
+  }
+
+  const content = msg.message.content;
+  if (typeof content === "string") {
+    return content.includes(taskToolCallId);
+  }
+
+  if (Array.isArray(content)) {
+    return content.some((c) => {
+      if (c.type === "text" && "text" in c && c.text) {
+        return c.text.includes(taskToolCallId);
+      }
+      if (
+        c.type === "tool_result" &&
+        "tool_use_id" in c &&
+        c.tool_use_id === taskToolCallId
+      ) {
+        return true;
+      }
+      return false;
+    });
+  }
+
+  return false;
+}
+
+/**
  * Find subtask messages for a specific task
  */
 function findSubtaskMessagesForTask(
@@ -129,47 +154,12 @@ function findSubtaskMessagesForTask(
 
   // Strategy 1: Look for a chain that directly references this task
   for (const [chainId, messages] of subtaskChains) {
-    if (messages.length > 0 && !usedChains.has(chainId)) {
-      // Check if any message in this chain references the task tool call ID
-      const hasTaskReference = messages.some((msg) => {
-        if (
-          msg.message &&
-          typeof msg.message === "object" &&
-          "content" in msg.message
-        ) {
-          const content = msg.message.content;
-          if (typeof content === "string") {
-            return content.includes(taskToolCallId);
-          }
-          if (Array.isArray(content)) {
-            return content.some(
-              (
-                c:
-                  | Anthropic.Messages.ContentBlock
-                  | Anthropic.Messages.ContentBlockParam
-              ) => {
-                if (c.type === "text" && "text" in c && c.text) {
-                  return c.text.includes(taskToolCallId);
-                }
-                if (
-                  c.type === "tool_result" &&
-                  "tool_use_id" in c &&
-                  c.tool_use_id === taskToolCallId
-                ) {
-                  return true;
-                }
-                return false;
-              }
-            );
-          }
-        }
-        return false;
-      });
-
-      if (hasTaskReference) {
-        usedChains.add(chainId);
-        return messages;
-      }
+    if (
+      !usedChains.has(chainId) &&
+      messages.some((msg) => hasTaskReference(msg, taskToolCallId))
+    ) {
+      usedChains.add(chainId);
+      return messages;
     }
   }
 
@@ -179,13 +169,10 @@ function findSubtaskMessagesForTask(
   let bestChainId = "";
 
   for (const [chainId, messages] of subtaskChains) {
-    if (messages.length > 0 && !usedChains.has(chainId)) {
-      // Find the index of the first message in this chain
+    if (!usedChains.has(chainId) && messages[0]) {
       const firstMessage = messages[0];
-      if (!firstMessage) continue;
-
       const firstMessageIndex = parsedData.findIndex(
-        (msg) => msg && msg.uuid === firstMessage.uuid
+        (msg) => msg?.uuid === firstMessage?.uuid
       );
 
       if (firstMessageIndex >= startIndex) {
@@ -199,12 +186,69 @@ function findSubtaskMessagesForTask(
     }
   }
 
-  // Mark this chain as used
   if (bestChainId) {
     usedChains.add(bestChainId);
   }
 
   return bestMatch;
+}
+
+/**
+ * Extract todos from TodoWrite tool calls in messages
+ */
+function extractTodosFromMessages(messages: ClaudeCodeMessage[]): Todo[] {
+  const todos: Todo[] = [];
+
+  for (const message of messages) {
+    if (
+      !message.message ||
+      typeof message.message !== "object" ||
+      !("content" in message.message)
+    ) {
+      continue;
+    }
+
+    const content = message.message.content;
+    if (!Array.isArray(content)) continue;
+
+    for (const c of content) {
+      if (
+        c.type === "tool_use" &&
+        "name" in c &&
+        c.name === "TodoWrite" &&
+        "input" in c &&
+        c.input &&
+        typeof c.input === "object" &&
+        "todos" in c.input &&
+        Array.isArray(c.input.todos)
+      ) {
+        const validTodos = c.input.todos.filter(isValidTodo);
+        todos.push(...validTodos);
+      }
+    }
+  }
+
+  return todos;
+}
+
+/**
+ * Type guard for valid todo objects
+ */
+function isValidTodo(todo: unknown): todo is Todo {
+  if (typeof todo !== "object" || todo === null) {
+    return false;
+  }
+  const todoObj = todo as Record<string, unknown>;
+  return (
+    "status" in todoObj &&
+    "id" in todoObj &&
+    "content" in todoObj &&
+    "priority" in todoObj &&
+    typeof todoObj.status === "string" &&
+    typeof todoObj.id === "string" &&
+    typeof todoObj.content === "string" &&
+    typeof todoObj.priority === "string"
+  );
 }
 
 /**
@@ -240,58 +284,7 @@ export function extractSubtaskData(
     )
     .filter((message): message is Message => message !== null);
 
-  // Extract todos from TodoWrite tool calls in subtask messages
-  const todos: Todo[] = [];
-  subtaskMessages.forEach((message) => {
-    if (
-      message.message &&
-      typeof message.message === "object" &&
-      "content" in message.message
-    ) {
-      const content = message.message.content;
-      if (Array.isArray(content)) {
-        content.forEach(
-          (
-            c:
-              | Anthropic.Messages.ContentBlock
-              | Anthropic.Messages.ContentBlockParam
-          ) => {
-            if (
-              c.type === "tool_use" &&
-              "name" in c &&
-              c.name === "TodoWrite" &&
-              "input" in c &&
-              c.input &&
-              typeof c.input === "object" &&
-              "todos" in c.input &&
-              Array.isArray(c.input.todos)
-            ) {
-              // Type guard and filter valid todos
-              const validTodos = c.input.todos.filter(
-                (todo: unknown): todo is Todo => {
-                  if (typeof todo !== "object" || todo === null) {
-                    return false;
-                  }
-                  const todoObj = todo as Record<string, unknown>;
-                  return (
-                    "status" in todoObj &&
-                    "id" in todoObj &&
-                    "content" in todoObj &&
-                    "priority" in todoObj &&
-                    typeof todoObj.status === "string" &&
-                    typeof todoObj.id === "string" &&
-                    typeof todoObj.content === "string" &&
-                    typeof todoObj.priority === "string"
-                  );
-                }
-              );
-              todos.push(...validTodos);
-            }
-          }
-        );
-      }
-    }
-  });
+  const todos = extractTodosFromMessages(subtaskMessages);
 
   return {
     uid: subtaskMessages[0]?.uuid || taskToolCallId,
