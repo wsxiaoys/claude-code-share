@@ -262,10 +262,16 @@ export function extractSubtaskData(
   }
 
   // Convert subtask messages to UIMessage format
+  // Note: We pass the full parsedData to ensure tool result matching works correctly
   const messages = subtaskMessages
-    .map((item, index) =>
-      parseMessage(item, subtaskMessages, index, { includeSidechain: true })
-    )
+    .map((item) => {
+      const originalIndex = parsedData.findIndex(
+        (msg) => msg?.uuid === item.uuid
+      );
+      return parseMessage(item, parsedData, originalIndex, {
+        includeSidechain: true,
+      });
+    })
     .filter((message): message is Message => message !== null);
 
   const todos = extractTodosFromMessages(subtaskMessages);
