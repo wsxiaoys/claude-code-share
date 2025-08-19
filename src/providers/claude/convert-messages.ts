@@ -1,6 +1,12 @@
 import type { Anthropic } from "@anthropic-ai/sdk";
 import type { TextPart } from "ai";
 import type { Message, UIToolPart } from "@/types";
+import {
+  cleanupChainTracking,
+  extractSubtaskData,
+  getGlobalUsedChains,
+  initializeChainTracking,
+} from "./subtask-processor";
 import type {
   BashToolCall,
   BashToolInput,
@@ -100,6 +106,9 @@ function getIsErrorFromToolResult(
 function convertToolCall(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
+  parsedData?: ClaudeCodeMessage[],
+  index?: number,
+  usedChains?: Set<string>,
 ): UIToolPart {
   if (c.name === "LS") {
     return handleListFiles(c as LSToolCall, toolResultItem);
@@ -122,7 +131,13 @@ function convertToolCall(
   }
 
   if (c.name === "Task") {
-    return handleNewTask(c as TaskToolCall, toolResultItem);
+    return handleNewTask(
+      c as TaskToolCall,
+      toolResultItem,
+      parsedData,
+      index,
+      usedChains,
+    );
   }
 
   if (c.name === "Read") {
@@ -355,12 +370,38 @@ function handleMultiEdit(
 function handleNewTask(
   c: ClaudeToolCall,
   toolResultItem: ClaudeCodeMessage | null,
+  parsedData?: ClaudeCodeMessage[],
+  index?: number,
+  usedChains?: Set<string>,
 ): UIToolPart<"newTask"> {
   const { description, prompt } = c.input as TaskToolInput;
+
+  // Extract subtask data if available
+  let subtaskData = null;
+  if (parsedData && typeof index === "number") {
+    const chainsSet = usedChains || new Set<string>();
+    subtaskData = extractSubtaskData(
+      c.id,
+      parsedData,
+      index + 1,
+      chainsSet,
+      parseMessage,
+    );
+  }
+
   const toolCall = {
     type: "tool-newTask" as const,
     toolCallId: c.id,
-    input: { description, prompt },
+    input: {
+      description,
+      prompt,
+      // Include subtask data in input if available
+      ...(subtaskData && {
+        _transient: {
+          task: subtaskData,
+        },
+      }),
+    },
   };
 
   if (!toolResultItem) {
@@ -565,6 +606,9 @@ function handleUnknownTool(
 
 export function convertToMessages(content: string): Message[] {
   try {
+    // Initialize global chain tracking for this conversion session
+    initializeChainTracking();
+
     const lines = content.split("\n").filter(Boolean);
     const parsedData: ClaudeCodeMessage[] = lines.map((line) =>
       JSON.parse(line),
@@ -574,9 +618,14 @@ export function convertToMessages(content: string): Message[] {
       .map((item, index) => parseMessage(item, parsedData, index))
       .filter((message): message is Message => message !== null);
 
+    // Clean up global state after conversion
+    cleanupChainTracking();
+
     return extractedMessages;
   } catch (error) {
     console.error("Error processing content:", error);
+    // Clean up global state on error
+    cleanupChainTracking();
     return [];
   }
 }
@@ -585,8 +634,17 @@ function parseMessage(
   item: ClaudeCodeMessage,
   parsedData: ClaudeCodeMessage[],
   index: number,
+  options?: { includeSidechain?: boolean },
 ): Message | null {
   if (!item.message || typeof item.message !== "object") {
+    return null;
+  }
+
+  // Skip sidechain messages at top level unless explicitly included
+  if (
+    (item as ClaudeCodeMessage).isSidechain === true &&
+    !options?.includeSidechain
+  ) {
     return null;
   }
 
@@ -595,11 +653,17 @@ function parseMessage(
 
     if ("role" in nestedMessage && "content" in nestedMessage) {
       if (item.type === "assistant" && nestedMessage.role === "assistant") {
-        return parseAssistantMessage(item, nestedMessage, parsedData, index);
+        return parseAssistantMessage(
+          item,
+          nestedMessage,
+          parsedData,
+          index,
+          options,
+        );
       }
 
       if (item.type === "user" && nestedMessage.role === "user") {
-        return parseUserMessage(item, nestedMessage);
+        return parseUserMessage(item, nestedMessage, options);
       }
     }
 
@@ -613,9 +677,13 @@ function parseAssistantMessage(
   nestedMessage: NestedMessage,
   parsedData: ClaudeCodeMessage[],
   index: number,
+  _options?: { includeSidechain?: boolean },
 ): Message {
   const parts: (TextPart | UIToolPart)[] = [];
   let textContent = "";
+
+  // Get the global usedChains set for this conversion session
+  const usedChains = getGlobalUsedChains();
 
   if ("content" in nestedMessage && Array.isArray(nestedMessage.content)) {
     nestedMessage.content.forEach(
@@ -658,6 +726,9 @@ function parseAssistantMessage(
           const toolInvocation = convertToolCall(
             c as ClaudeToolCall,
             toolResultItem,
+            parsedData,
+            index,
+            usedChains || undefined,
           );
           parts.push(toolInvocation);
         }
@@ -684,7 +755,16 @@ function parseAssistantMessage(
 function parseUserMessage(
   historyItem: ClaudeCodeMessage,
   nestedMessage: NestedMessage,
+  options?: { includeSidechain?: boolean },
 ): Message | null {
+  // Skip sidechain user messages from final results unless explicitly included
+  if (
+    (historyItem as ClaudeCodeMessage).isSidechain === true &&
+    !options?.includeSidechain
+  ) {
+    return null;
+  }
+
   if ("content" in nestedMessage && typeof nestedMessage.content === "string") {
     return {
       id: historyItem.uuid,
