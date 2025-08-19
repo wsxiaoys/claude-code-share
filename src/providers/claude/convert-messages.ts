@@ -641,7 +641,10 @@ function parseMessage(
   }
 
   // Skip sidechain messages at top level unless explicitly included
-  if ((item as any).isSidechain === true && !options?.includeSidechain) {
+  if (
+    (item as ClaudeCodeMessage).isSidechain === true &&
+    !options?.includeSidechain
+  ) {
     return null;
   }
 
@@ -755,7 +758,10 @@ function parseUserMessage(
   options?: { includeSidechain?: boolean }
 ): Message | null {
   // Skip sidechain user messages from final results unless explicitly included
-  if ((historyItem as any).isSidechain === true && !options?.includeSidechain) {
+  if (
+    (historyItem as ClaudeCodeMessage).isSidechain === true &&
+    !options?.includeSidechain
+  ) {
     return null;
   }
 
