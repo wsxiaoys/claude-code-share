@@ -118,6 +118,9 @@ function hasTaskReference(
       ) {
         return true;
       }
+      if (c.type === "tool_use" && "id" in c && c.id === taskToolCallId) {
+        return true;
+      }
       return false;
     });
   }
@@ -138,43 +141,40 @@ function findSubtaskMessagesForTask(
 
   // Strategy 1: Look for a chain that directly references this task
   for (const [chainId, messages] of subtaskChains) {
-    if (
-      !usedChains.has(chainId) &&
-      messages.some((msg) => hasTaskReference(msg, taskToolCallId))
-    ) {
-      usedChains.add(chainId);
-      return messages;
-    }
-  }
-
-  // Strategy 2: Fallback to temporal proximity (closest unused chain after the task)
-  let bestMatch: ClaudeCodeMessage[] = [];
-  let smallestDistance = Infinity;
-  let bestChainId = "";
-
-  for (const [chainId, messages] of subtaskChains) {
-    if (!usedChains.has(chainId) && messages[0]) {
-      const firstMessage = messages[0];
-      const firstMessageIndex = parsedData.findIndex(
-        (msg) => msg?.uuid === firstMessage?.uuid
+    if (!usedChains.has(chainId)) {
+      const hasReference = messages.some((msg) =>
+        hasTaskReference(msg, taskToolCallId)
       );
-
-      if (firstMessageIndex >= startIndex) {
-        const distance = firstMessageIndex - startIndex;
-        if (distance < smallestDistance) {
-          smallestDistance = distance;
-          bestMatch = messages;
-          bestChainId = chainId;
-        }
+      if (hasReference) {
+        usedChains.add(chainId);
+        return messages;
       }
     }
   }
 
-  if (bestChainId) {
-    usedChains.add(bestChainId);
-  }
+  // Strategy 2: If no direct reference, assign the first unused chain in temporal order
+  // This handles cases where subtasks don't contain direct task references
+  const sortedChains = Array.from(subtaskChains.entries())
+    .filter(([chainId]) => !usedChains.has(chainId))
+    .sort(([, messagesA], [, messagesB]) => {
+      const indexA = parsedData.findIndex(
+        (msg) => msg?.uuid === messagesA[0]?.uuid
+      );
+      const indexB = parsedData.findIndex(
+        (msg) => msg?.uuid === messagesB[0]?.uuid
+      );
+      return indexA - indexB;
+    });
 
-  return bestMatch;
+  if (sortedChains.length > 0) {
+    const firstChain = sortedChains[0];
+    if (firstChain) {
+      const [chainId, messages] = firstChain;
+      usedChains.add(chainId);
+      return messages;
+    }
+  }
+  return [];
 }
 
 /**
