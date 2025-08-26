@@ -1,8 +1,10 @@
 import type { Provider } from "@/types.js";
 import { claude } from "./claude";
+import { gemini } from "./gemini";
 
 const providers: Record<string, Provider> = {
   [claude.id]: claude,
+  [gemini.id]: gemini,
 };
 
 export function getProvider(name?: string): Provider {
