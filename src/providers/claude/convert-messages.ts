@@ -264,8 +264,9 @@ function handleTodoWrite(
   toolResultItem: ClaudeCodeMessage | null,
 ): UIToolPart<"todoWrite"> {
   const { todos } = c.input as TodoWriteToolInput;
-  const todosWithDefaults = (todos || []).map((todo) => ({
+  const todosWithDefaults = (todos || []).map((todo, index) => ({
     ...todo,
+    id: todo.id || `todo-${index}`,
     priority:
       todo.priority && ["low", "medium", "high"].includes(todo.priority)
         ? todo.priority
