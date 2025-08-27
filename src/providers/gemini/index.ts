@@ -4,7 +4,7 @@ import { listConversations } from "./list-conversations";
 
 export const gemini: Provider = {
   id: "gemini",
-  displayName: "Gemini",
+  displayName: "Gemini CLI",
 
   get conversations() {
     return listConversations();
