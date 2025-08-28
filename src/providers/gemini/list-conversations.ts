@@ -43,9 +43,7 @@ export function listConversations(): Conversation[] {
           const title =
             extractSecondMessage(checkpoint.path) ||
             extractTitleFromLogs(logsFile) ||
-            checkpoint.name
-              .replace("checkpoint-", "")
-              .replace(".json", "");
+            checkpoint.name.replace("checkpoint-", "").replace(".json", "");
 
           conversations.push({
             path: checkpoint.path,
