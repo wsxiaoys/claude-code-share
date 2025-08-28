@@ -4,6 +4,17 @@
 // - Gemini tool call and result types
 // - Any other Gemini-specific data structures
 
+// ### Direct Matches:
+//  Gemini - pochi
+// - ReadFile ↔ `readFile`
+// - WriteFile ↔ `writeToFile`
+// - Edit ↔ `applyDiff` / `multiApplyDiff`
+// - Shell ↔ `executeCommand`
+// - FindFiles ↔ `globFiles`
+// - ReadFolder ↔ `listFiles`
+// - SearchText ↔ `searchFiles`
+// - ReadManyFiles ↔ `batchCall` (can be used to read multiple files)
+
 import type {
   FunctionDeclaration,
   PartListUnion,
@@ -89,28 +100,6 @@ export interface FileDiff {
 }
 
 export type ToolResultDisplay = string | FileDiff;
-
-/**
- * Placeholder for Gemini message types
- * TODO: Define the actual structure based on Gemini's conversation format
- */
-export interface GeminiMessage {
-  // TODO: Add Gemini message structure
-  id?: string;
-  role?: string;
-  content?: unknown;
-  timestamp?: string;
-}
-
-/**
- * Placeholder for Gemini conversation history type
- * TODO: Define based on how Gemini stores conversation data
- */
-export interface GeminiConversationHistory {
-  // TODO: Add Gemini conversation history structure
-  messages?: GeminiMessage[];
-  metadata?: unknown;
-}
 
 export interface ToolResult {
   /**
