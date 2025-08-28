@@ -21,17 +21,38 @@ export function listConversations(): Conversation[] {
 
     for (const projectUuid of projectDirs) {
       const projectPath = path.join(geminiDir, projectUuid);
-      const conversationFile = path.join(projectPath, "conversation.json");
+      const logsFile = path.join(projectPath, "logs.json");
 
-      if (fs.existsSync(conversationFile)) {
-        const stats = fs.statSync(conversationFile);
-        const firstMessage = extractFirstMessage(conversationFile);
+      // Look for checkpoint files in the project directory
+      const files = fs.readdirSync(projectPath);
+      const checkpointFiles = files.filter(
+        (file) => file.startsWith("checkpoint-") && file.endsWith(".json"),
+      );
 
-        conversations.push({
-          path: conversationFile,
-          mtime: stats.mtime,
-          title: firstMessage || "(empty)",
-        });
+      if (checkpointFiles.length > 0) {
+        // Process each checkpoint file as a separate conversation
+        const checkpointData = checkpointFiles
+          .map((file) => ({
+            name: file,
+            path: path.join(projectPath, file),
+            stats: fs.statSync(path.join(projectPath, file)),
+          }))
+          .sort((a, b) => b.stats.mtime.getTime() - a.stats.mtime.getTime());
+
+        for (const checkpoint of checkpointData) {
+          const title =
+            extractSecondMessage(checkpoint.path) ||
+            extractTitleFromLogs(logsFile) ||
+            checkpoint.name
+              .replace("checkpoint-", "")
+              .replace(".json", "");
+
+          conversations.push({
+            path: checkpoint.path,
+            mtime: checkpoint.stats.mtime,
+            title: title,
+          });
+        }
       }
     }
   } catch (error) {
@@ -43,41 +64,63 @@ export function listConversations(): Conversation[] {
   return conversations.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
 }
 
-function extractFirstMessage(filePath: string): string | undefined {
+function extractTitleFromLogs(logsFilePath: string): string | undefined {
+  try {
+    if (!fs.existsSync(logsFilePath)) {
+      return undefined;
+    }
+
+    const content = fs.readFileSync(logsFilePath, "utf-8");
+    const logs = JSON.parse(content);
+
+    if (Array.isArray(logs) && logs.length > 0) {
+      // Find the first user message that's not a command
+      const firstUserMessage = logs.find(
+        (log) =>
+          log.type === "user" &&
+          log.message &&
+          !log.message.startsWith("/chat"),
+      );
+
+      if (firstUserMessage && firstUserMessage.message) {
+        const message = firstUserMessage.message;
+        return message.length > 50 ? `${message.substring(0, 50)}...` : message;
+      }
+    }
+  } catch {
+    // File read or parse error
+  }
+  return undefined;
+}
+
+function extractSecondMessage(filePath: string): string | undefined {
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const data = JSON.parse(content);
 
-    // Look for the first user message in the conversation
-    if (data.messages && Array.isArray(data.messages)) {
-      for (const message of data.messages) {
-        if (message.role === "user" && message.content) {
-          let messageText: string;
-
-          if (typeof message.content === "string") {
-            messageText = message.content;
-          } else if (Array.isArray(message.content)) {
-            // Handle array format for multimodal content
-            const textContent = message.content
-              .filter(
-                (item: unknown) =>
-                  typeof item === "object" &&
-                  item !== null &&
-                  "type" in item &&
-                  "text" in item &&
-                  item.type === "text" &&
-                  typeof item.text === "string",
-              )
-              .map((item: { type: string; text: string }) => item.text)
+    // Handle Gemini checkpoint format with role/parts structure
+    if (Array.isArray(data)) {
+      let userMessageCount = 0;
+      for (const message of data) {
+        if (
+          message.role === "user" &&
+          message.parts &&
+          Array.isArray(message.parts)
+        ) {
+          userMessageCount++;
+          // Skip the first user message (default message) and get the second one
+          if (userMessageCount === 2) {
+            const textParts = message.parts
+              .filter((part: any) => part.text && typeof part.text === "string")
+              .map((part: any) => part.text)
               .join(" ");
-            messageText = textContent || JSON.stringify(message.content);
-          } else {
-            messageText = JSON.stringify(message.content);
-          }
 
-          return messageText.length > 100
-            ? `${messageText.substring(0, 100)}...`
-            : messageText;
+            if (textParts) {
+              return textParts.length > 50
+                ? `${textParts.substring(0, 50)}...`
+                : textParts;
+            }
+          }
         }
       }
     }
@@ -85,8 +128,49 @@ function extractFirstMessage(filePath: string): string | undefined {
     // Fallback: look for any text content in the conversation
     if (typeof data === "object" && data !== null) {
       const jsonString = JSON.stringify(data);
-      if (jsonString.length > 100) {
-        return `${jsonString.substring(0, 100)}...`;
+      if (jsonString.length > 50) {
+        return `${jsonString.substring(0, 50)}...`;
+      }
+      return jsonString;
+    }
+  } catch {
+    // File read or parse error
+  }
+  return undefined;
+}
+
+function extractFirstMessage(filePath: string): string | undefined {
+  try {
+    const content = fs.readFileSync(filePath, "utf-8");
+    const data = JSON.parse(content);
+
+    // Handle Gemini checkpoint format with role/parts structure
+    if (Array.isArray(data)) {
+      for (const message of data) {
+        if (
+          message.role === "user" &&
+          message.parts &&
+          Array.isArray(message.parts)
+        ) {
+          const textParts = message.parts
+            .filter((part: any) => part.text && typeof part.text === "string")
+            .map((part: any) => part.text)
+            .join(" ");
+
+          if (textParts) {
+            return textParts.length > 50
+              ? `${textParts.substring(0, 50)}...`
+              : textParts;
+          }
+        }
+      }
+    }
+
+    // Fallback: look for any text content in the conversation
+    if (typeof data === "object" && data !== null) {
+      const jsonString = JSON.stringify(data);
+      if (jsonString.length > 50) {
+        return `${jsonString.substring(0, 50)}...`;
       }
       return jsonString;
     }

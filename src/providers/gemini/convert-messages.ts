@@ -505,19 +505,33 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
 }
 
 /**
- * Converts Gemini conversation file to AI SDK UIMessage format
- * @param filePath - Path to the Gemini conversation file
+ * Converts Gemini conversation file or content to AI SDK UIMessage format
+ * @param pathOrContent - Path to the Gemini conversation file or content string
  * @returns Array of converted messages
  */
-export function convertToMessages(filePath: string): Message[] {
+export function convertToMessages(pathOrContent: string): Message[] {
   try {
-    // For now, return empty array as we need to implement file reading
-    // This should read the Gemini conversation file and parse it into Content[]
-    // then call convertGeminiContentsToMessages
-    console.warn(`Gemini file conversion not yet implemented for: ${filePath}`);
-    return [];
+    let content: string;
+
+    // Check if input is a file path or content
+    if (
+      pathOrContent.includes("\n") ||
+      pathOrContent.startsWith("[") ||
+      pathOrContent.startsWith("{")
+    ) {
+      // Likely content string
+      content = pathOrContent;
+    } else {
+      // Likely file path
+      const fs = require("fs");
+      content = fs.readFileSync(pathOrContent, "utf-8");
+    }
+
+    // Parse the content as JSON array of Gemini Content objects
+    const geminiContents: Content[] = JSON.parse(content);
+    return convertGeminiContentsToMessages(geminiContents);
   } catch (error) {
-    console.error("Error processing Gemini conversation file:", error);
+    console.error("Error processing Gemini content:", error);
     return [];
   }
 }

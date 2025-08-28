@@ -22,5 +22,5 @@ export interface Provider {
 
   conversations: Conversation[];
 
-  convertToMessages(path: string): Message[];
+  convertToMessages(pathOrContent: string): Message[];
 }
