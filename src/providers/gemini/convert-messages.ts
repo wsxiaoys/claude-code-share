@@ -6,6 +6,8 @@ import type {
 } from "@google/genai";
 import type { TextPart } from "ai";
 import type { Message, UIToolPart } from "@/types";
+import { writeFileSync } from "fs";
+import { join } from "path";
 
 // Gemini uses FunctionCall and FunctionResponse from @google/genai
 // No need for custom GeminiToolCall interface
@@ -21,28 +23,28 @@ function convertGeminiToolCall(
 ): UIToolPart {
   // Map Gemini tools to Pochi equivalents
   switch (toolName) {
-    case "ReadFile":
+    case "read_file":
       return handleReadFile(toolCallId, input, toolResult);
 
-    case "WriteFile":
+    case "write_file":
       return handleWriteFile(toolCallId, input, toolResult);
 
-    case "Edit":
+    case "replace":
       return handleEdit(toolCallId, input, toolResult);
 
-    case "Shell":
+    case "run_shell_command":
       return handleShell(toolCallId, input, toolResult);
 
-    case "FindFiles":
+    case "glob":
       return handleFindFiles(toolCallId, input, toolResult);
 
-    case "ReadFolder":
+    case "list_directory":
       return handleReadFolder(toolCallId, input, toolResult);
 
-    case "ReadManyFiles":
+    case "read_many_files":
       return handleReadManyFiles(toolCallId, input, toolResult);
 
-    case "SearchText":
+    case "search_file_content":
       return handleSearchText(toolCallId, input, toolResult);
 
     default:
@@ -430,6 +432,12 @@ function handleUnrecognizedTool(
 function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
   const convertedMessages: Message[] = [];
 
+  // Debug: Log input
+  console.log(
+    "[DEBUG] convertGeminiContentsToMessages input:",
+    JSON.stringify(geminiContents, null, 2)
+  );
+
   for (let i = 0; i < geminiContents.length; i++) {
     const content = geminiContents[i];
     if (!content) continue;
@@ -503,6 +511,28 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
     }
   }
 
+  // Debug: Log output and save to file
+  console.log(
+    "[DEBUG] convertGeminiContentsToMessages output:",
+    JSON.stringify(convertedMessages, null, 2)
+  );
+
+  try {
+    const debugFilePath =
+      "/Users/allenz/Documents/Code_Project/claude-code-share/debug-convert-messages.log";
+    const debugData = {
+      timestamp: new Date().toISOString(),
+      input: geminiContents,
+      output: convertedMessages,
+      inputLength: geminiContents.length,
+      outputLength: convertedMessages.length,
+    };
+    writeFileSync(debugFilePath, JSON.stringify(debugData, null, 2));
+    console.log(`[DEBUG] Debug data written to: ${debugFilePath}`);
+  } catch (error) {
+    console.error("[DEBUG] Failed to write debug file:", error);
+  }
+
   return convertedMessages;
 }
 
@@ -515,10 +545,10 @@ export function convertToMessages(content: string): Message[] {
   try {
     // Parse the content as JSON array of Gemini Content objects
     const geminiContents: Content[] = JSON.parse(content);
-    
+
     // Skip the first message (default Gemini CLI setup message)
-    const filteredContents = geminiContents.slice(1);
-    
+    const filteredContents = geminiContents.slice(2);
+
     return convertGeminiContentsToMessages(filteredContents);
   } catch (error) {
     console.error("Error processing Gemini content:", error);
