@@ -17,7 +17,7 @@ function convertGeminiToolCall(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map Gemini tools to Pochi equivalents
   switch (toolName) {
@@ -55,7 +55,7 @@ function convertGeminiToolCall(
 function handleReadFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"readFile"> {
   const toolCall = {
     type: "tool-readFile" as const,
@@ -84,7 +84,7 @@ function handleReadFile(
 function handleWriteFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"writeToFile"> {
   const toolCall = {
     type: "tool-writeToFile" as const,
@@ -111,7 +111,7 @@ function handleWriteFile(
 function handleEdit(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"applyDiff"> {
   const toolCall = {
     type: "tool-applyDiff" as const,
@@ -147,7 +147,7 @@ function handleEdit(
 function handleShell(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"executeCommand"> {
   const toolCall = {
     type: "tool-executeCommand" as const,
@@ -174,7 +174,7 @@ function handleShell(
 function handleFindFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"globFiles"> {
   const toolCall = {
     type: "tool-globFiles" as const,
@@ -209,7 +209,7 @@ function handleFindFiles(
 function handleReadFolder(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"listFiles"> {
   const toolCall = {
     type: "tool-listFiles" as const,
@@ -242,7 +242,7 @@ function handleReadFolder(
 function handleReadManyFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"batchCall"> {
   // TODO: Implement batch call mapping for reading multiple files
   // This would require understanding Gemini's ReadManyFiles format
@@ -271,7 +271,7 @@ function handleReadManyFiles(
 function handleSearchText(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"searchFiles"> {
   const toolCall = {
     type: "tool-searchFiles" as const,
@@ -308,7 +308,7 @@ function handleSearchText(
 function handleGoogleSearch(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // No direct Pochi equivalent - map to executeCommand as placeholder
   const toolCall = {
@@ -336,7 +336,7 @@ function handleGoogleSearch(
 function handleWebFetch(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // No direct Pochi equivalent - map to executeCommand as placeholder
   const toolCall = {
@@ -364,7 +364,7 @@ function handleWebFetch(
 function handleSaveMemory(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // No direct Pochi equivalent - map to writeToFile as placeholder
   const memoryKey =
@@ -395,14 +395,16 @@ function handleUnrecognizedTool(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map unrecognized tools to executeCommand as placeholder
   const toolCall = {
     type: "tool-executeCommand" as const,
     toolCallId,
     input: {
-      command: `echo "Unrecognized tool '${toolName}' called with input: ${JSON.stringify(input)}"`,
+      command: `echo "Unrecognized tool '${toolName}' called with input: ${JSON.stringify(
+        input
+      )}"`,
     },
   };
 
@@ -447,7 +449,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
           const toolCall = convertGeminiToolCall(
             `${i}-${part.functionCall.name}`,
             part.functionCall.name || "",
-            part.functionCall.args || {},
+            part.functionCall.args || {}
           );
           parts.push(toolCall);
         }
@@ -469,7 +471,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
             toolResult.toolCallId,
             part.functionResponse.name || "",
             {},
-            toolResult,
+            toolResult
           );
           parts.push(convertedToolResult);
         }
@@ -482,7 +484,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         ?.filter(
           (part) =>
             typeof part === "string" ||
-            (typeof part === "object" && part && "text" in part),
+            (typeof part === "object" && part && "text" in part)
         )
         .map((part) => (typeof part === "string" ? part : (part as any).text))
         .join("") || "";
@@ -505,31 +507,19 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
 }
 
 /**
- * Converts Gemini conversation file or content to AI SDK UIMessage format
- * @param pathOrContent - Path to the Gemini conversation file or content string
+ * Converts Gemini conversation content to AI SDK UIMessage format
+ * @param content - Gemini conversation content as JSON string
  * @returns Array of converted messages
  */
-export function convertToMessages(pathOrContent: string): Message[] {
+export function convertToMessages(content: string): Message[] {
   try {
-    let content: string;
-
-    // Check if input is a file path or content
-    if (
-      pathOrContent.includes("\n") ||
-      pathOrContent.startsWith("[") ||
-      pathOrContent.startsWith("{")
-    ) {
-      // Likely content string
-      content = pathOrContent;
-    } else {
-      // Likely file path
-      const fs = require("fs");
-      content = fs.readFileSync(pathOrContent, "utf-8");
-    }
-
     // Parse the content as JSON array of Gemini Content objects
     const geminiContents: Content[] = JSON.parse(content);
-    return convertGeminiContentsToMessages(geminiContents);
+    
+    // Skip the first message (default Gemini CLI setup message)
+    const filteredContents = geminiContents.slice(1);
+    
+    return convertGeminiContentsToMessages(filteredContents);
   } catch (error) {
     console.error("Error processing Gemini content:", error);
     return [];
