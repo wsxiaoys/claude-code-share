@@ -1,11 +1,11 @@
-import type { TextPart } from "ai";
-import type { Message, UIToolPart } from "@/types";
 import type {
   Content,
-  Part,
   FunctionCall,
   FunctionResponse,
+  Part,
 } from "@google/genai";
+import type { TextPart } from "ai";
+import type { Message, UIToolPart } from "@/types";
 
 // Gemini uses FunctionCall and FunctionResponse from @google/genai
 // No need for custom GeminiToolCall interface
@@ -17,7 +17,7 @@ function convertGeminiToolCall(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart {
   // Map Gemini tools to Pochi equivalents
   switch (toolName) {
@@ -46,7 +46,7 @@ function convertGeminiToolCall(
       return handleSearchText(toolCallId, input, toolResult);
 
     default:
-      return handleUnknownTool(toolCallId, toolName, input, toolResult);
+      return handleUnrecognizedTool(toolCallId, toolName, input, toolResult);
   }
 }
 
@@ -55,7 +55,7 @@ function convertGeminiToolCall(
 function handleReadFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"readFile"> {
   const toolCall = {
     type: "tool-readFile" as const,
@@ -84,7 +84,7 @@ function handleReadFile(
 function handleWriteFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"writeToFile"> {
   const toolCall = {
     type: "tool-writeToFile" as const,
@@ -111,7 +111,7 @@ function handleWriteFile(
 function handleEdit(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"applyDiff"> {
   const toolCall = {
     type: "tool-applyDiff" as const,
@@ -147,7 +147,7 @@ function handleEdit(
 function handleShell(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"executeCommand"> {
   const toolCall = {
     type: "tool-executeCommand" as const,
@@ -174,7 +174,7 @@ function handleShell(
 function handleFindFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"globFiles"> {
   const toolCall = {
     type: "tool-globFiles" as const,
@@ -209,7 +209,7 @@ function handleFindFiles(
 function handleReadFolder(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"listFiles"> {
   const toolCall = {
     type: "tool-listFiles" as const,
@@ -242,7 +242,7 @@ function handleReadFolder(
 function handleReadManyFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"batchCall"> {
   // TODO: Implement batch call mapping for reading multiple files
   // This would require understanding Gemini's ReadManyFiles format
@@ -271,7 +271,7 @@ function handleReadManyFiles(
 function handleSearchText(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart<"searchFiles"> {
   const toolCall = {
     type: "tool-searchFiles" as const,
@@ -308,7 +308,7 @@ function handleSearchText(
 function handleGoogleSearch(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart {
   // No direct Pochi equivalent - map to executeCommand as placeholder
   const toolCall = {
@@ -336,7 +336,7 @@ function handleGoogleSearch(
 function handleWebFetch(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart {
   // No direct Pochi equivalent - map to executeCommand as placeholder
   const toolCall = {
@@ -364,14 +364,16 @@ function handleWebFetch(
 function handleSaveMemory(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart {
   // No direct Pochi equivalent - map to writeToFile as placeholder
+  const memoryKey =
+    (input.key as string) || toolCallId.replace(/[^a-zA-Z0-9]/g, "_");
   const toolCall = {
     type: "tool-writeToFile" as const,
     toolCallId,
     input: {
-      path: `memory_${(input.key as string) || "unknown"}.txt`,
+      path: `memory_${memoryKey}.txt`,
       content: (input.value as string) || "",
     },
   };
@@ -389,18 +391,18 @@ function handleSaveMemory(
   };
 }
 
-function handleUnknownTool(
+function handleUnrecognizedTool(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean }
+  toolResult?: { result: unknown; isError?: boolean },
 ): UIToolPart {
-  // Map unknown tools to executeCommand as placeholder
+  // Map unrecognized tools to executeCommand as placeholder
   const toolCall = {
     type: "tool-executeCommand" as const,
     toolCallId,
     input: {
-      command: `echo "Unknown tool ${toolName} called"`,
+      command: `echo "Unrecognized tool '${toolName}' called with input: ${JSON.stringify(input)}"`,
     },
   };
 
@@ -423,7 +425,7 @@ function handleUnknownTool(
  * @param geminiContents - Array of Gemini Content objects
  * @returns Array of converted messages
  */
-export function convertToMessages(geminiContents: Content[]): Message[] {
+function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
   const convertedMessages: Message[] = [];
 
   for (let i = 0; i < geminiContents.length; i++) {
@@ -445,7 +447,7 @@ export function convertToMessages(geminiContents: Content[]): Message[] {
           const toolCall = convertGeminiToolCall(
             `${i}-${part.functionCall.name}`,
             part.functionCall.name || "",
-            part.functionCall.args || {}
+            part.functionCall.args || {},
           );
           parts.push(toolCall);
         }
@@ -467,7 +469,7 @@ export function convertToMessages(geminiContents: Content[]): Message[] {
             toolResult.toolCallId,
             part.functionResponse.name || "",
             {},
-            toolResult
+            toolResult,
           );
           parts.push(convertedToolResult);
         }
@@ -480,7 +482,7 @@ export function convertToMessages(geminiContents: Content[]): Message[] {
         ?.filter(
           (part) =>
             typeof part === "string" ||
-            (typeof part === "object" && part && "text" in part)
+            (typeof part === "object" && part && "text" in part),
         )
         .map((part) => (typeof part === "string" ? part : (part as any).text))
         .join("") || "";
@@ -500,4 +502,22 @@ export function convertToMessages(geminiContents: Content[]): Message[] {
   }
 
   return convertedMessages;
+}
+
+/**
+ * Converts Gemini conversation file to AI SDK UIMessage format
+ * @param filePath - Path to the Gemini conversation file
+ * @returns Array of converted messages
+ */
+export function convertToMessages(filePath: string): Message[] {
+  try {
+    // For now, return empty array as we need to implement file reading
+    // This should read the Gemini conversation file and parse it into Content[]
+    // then call convertGeminiContentsToMessages
+    console.warn(`Gemini file conversion not yet implemented for: ${filePath}`);
+    return [];
+  } catch (error) {
+    console.error("Error processing Gemini conversation file:", error);
+    return [];
+  }
 }

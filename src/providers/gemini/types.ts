@@ -247,7 +247,7 @@ export interface ModifyContext<ToolParams> {
   createUpdatedParams: (
     oldContent: string,
     modifiedProposedContent: string,
-    originalParams: ToolParams
+    originalParams: ToolParams,
   ) => ToolParams;
 }
 
@@ -270,7 +270,7 @@ export interface IModificationService {
     modifyContext: ModifyContext<ToolParams>,
     editorType: EditorType,
     abortSignal: AbortSignal,
-    onEditorClose: () => void
+    onEditorClose: () => void,
   ): Promise<ModifyResult<ToolParams>>;
 }
 
