@@ -5,8 +5,7 @@ import type {
   Part,
 } from "@google/genai";
 import type { TextPart } from "ai";
-import { writeFileSync } from "fs";
-import { join } from "path";
+
 import type { Message, UIToolPart } from "@/types";
 
 // Gemini uses FunctionCall and FunctionResponse from @google/genai
@@ -73,11 +72,20 @@ function handleReadFile(
     return { ...toolCall, state: "input-available" };
   }
 
+  // Extract content from nested structure: toolResult.result.output
+  let content = "";
+  if (toolResult.result && typeof toolResult.result === "object") {
+    const resultObj = toolResult.result as any;
+    content = String(resultObj.output || resultObj.content || toolResult.result || "");
+  } else {
+    content = String(toolResult.result || "");
+  }
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      content: toolResult.isError ? "" : String(toolResult.result || ""),
+      content,
       isTruncated: false,
     },
   };
@@ -432,11 +440,7 @@ function handleUnrecognizedTool(
 function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
   const convertedMessages: Message[] = [];
 
-  // Debug: Log input
-  console.log(
-    "[DEBUG] convertGeminiContentsToMessages input:",
-    JSON.stringify(geminiContents, null, 2),
-  );
+
 
   for (let i = 0; i < geminiContents.length; i++) {
     const content = geminiContents[i];
@@ -499,39 +503,28 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
 
     // Create the message
     if (textContent || parts.length > 0) {
+      // Always include parts array, add text part if there's text content
+      const allParts: (TextPart | UIToolPart)[] = [...parts];
+      if (textContent) {
+        allParts.unshift({
+          type: "text",
+          text: textContent,
+        } as TextPart);
+      }
+
       const message: Message = {
         id: `gemini-${i}`,
         role: content.role === "model" ? "assistant" : content.role || "user",
         createdAt: new Date(),
-        ...(textContent && { content: textContent }),
-        ...(parts.length > 0 && { parts }),
+        content: textContent || "",
+        parts: allParts,
       } as Message;
 
       convertedMessages.push(message);
     }
   }
 
-  // Debug: Log output and save to file
-  console.log(
-    "[DEBUG] convertGeminiContentsToMessages output:",
-    JSON.stringify(convertedMessages, null, 2),
-  );
 
-  try {
-    const debugFilePath =
-      "/Users/allenz/Documents/Code_Project/claude-code-share/debug-convert-messages.log";
-    const debugData = {
-      timestamp: new Date().toISOString(),
-      input: geminiContents,
-      output: convertedMessages,
-      inputLength: geminiContents.length,
-      outputLength: convertedMessages.length,
-    };
-    writeFileSync(debugFilePath, JSON.stringify(debugData, null, 2));
-    console.log(`[DEBUG] Debug data written to: ${debugFilePath}`);
-  } catch (error) {
-    console.error("[DEBUG] Failed to write debug file:", error);
-  }
 
   return convertedMessages;
 }
