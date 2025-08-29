@@ -8,6 +8,43 @@ import type { TextPart } from "ai";
 
 import type { Message, UIToolPart } from "@/types";
 
+/**
+ * Safely extracts output from tool result objects
+ */
+function extractToolOutput(result: unknown): string {
+  if (result && typeof result === "object") {
+    const resultObj = result as Record<string, unknown>;
+    const output = resultObj.output || resultObj.content || result;
+    return String(output || "");
+  }
+  return String(result || "");
+}
+
+/**
+ * Safely extracts file list from tool result objects
+ */
+function extractFileList(result: unknown): string[] {
+  if (Array.isArray(result)) {
+    return result.map(String);
+  }
+  
+  if (result && typeof result === "object") {
+    const resultObj = result as Record<string, unknown>;
+    const files = resultObj.files || resultObj.output || resultObj.content;
+    
+    if (Array.isArray(files)) {
+      return files.map(String);
+    }
+    
+    if (typeof files === "string") {
+      return files.split("\n").filter(Boolean);
+    }
+  }
+  
+  const stringResult = String(result || "");
+  return stringResult ? stringResult.split("\n").filter(Boolean) : [];
+}
+
 // Gemini uses FunctionCall and FunctionResponse from @google/genai
 // No need for custom GeminiToolCall interface
 
@@ -18,7 +55,7 @@ function convertGeminiToolCall(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map Gemini tools to Pochi equivalents
   switch (toolName) {
@@ -56,7 +93,7 @@ function convertGeminiToolCall(
 function handleReadFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"readFile"> {
   const toolCall = {
     type: "tool-readFile" as const,
@@ -73,15 +110,7 @@ function handleReadFile(
   }
 
   // Extract content from nested structure: toolResult.result.output
-  let content = "";
-  if (toolResult.result && typeof toolResult.result === "object") {
-    const resultObj = toolResult.result as any;
-    content = String(
-      resultObj.output || resultObj.content || toolResult.result || "",
-    );
-  } else {
-    content = String(toolResult.result || "");
-  }
+  const content = extractToolOutput(toolResult.result);
 
   return {
     ...toolCall,
@@ -96,7 +125,7 @@ function handleReadFile(
 function handleWriteFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"writeToFile"> {
   const toolCall = {
     type: "tool-writeToFile" as const,
@@ -123,7 +152,7 @@ function handleWriteFile(
 function handleEdit(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"applyDiff"> {
   const toolCall = {
     type: "tool-applyDiff" as const,
@@ -159,7 +188,7 @@ function handleEdit(
 function handleShell(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"executeCommand"> {
   const toolCall = {
     type: "tool-executeCommand" as const,
@@ -177,7 +206,7 @@ function handleShell(
     ...toolCall,
     state: "output-available",
     output: {
-      output: String(toolResult.result || ""),
+      output: extractToolOutput(toolResult.result),
       isTruncated: false,
     },
   };
@@ -186,7 +215,7 @@ function handleShell(
 function handleFindFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"globFiles"> {
   const toolCall = {
     type: "tool-globFiles" as const,
@@ -202,11 +231,7 @@ function handleFindFiles(
     return { ...toolCall, state: "input-available" };
   }
 
-  const files = Array.isArray(toolResult.result)
-    ? toolResult.result.map(String)
-    : String(toolResult.result || "")
-        .split("\n")
-        .filter(Boolean);
+  const files = extractFileList(toolResult.result);
 
   return {
     ...toolCall,
@@ -221,7 +246,7 @@ function handleFindFiles(
 function handleReadFolder(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"listFiles"> {
   const toolCall = {
     type: "tool-listFiles" as const,
@@ -235,11 +260,7 @@ function handleReadFolder(
     return { ...toolCall, state: "input-available" };
   }
 
-  const files = Array.isArray(toolResult.result)
-    ? toolResult.result.map(String)
-    : String(toolResult.result || "")
-        .split("\n")
-        .filter(Boolean);
+  const files = extractFileList(toolResult.result);
 
   return {
     ...toolCall,
@@ -254,7 +275,7 @@ function handleReadFolder(
 function handleReadManyFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"batchCall"> {
   // TODO: Implement batch call mapping for reading multiple files
   // This would require understanding Gemini's ReadManyFiles format
@@ -283,7 +304,7 @@ function handleReadManyFiles(
 function handleSearchText(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"searchFiles"> {
   const toolCall = {
     type: "tool-searchFiles" as const,
@@ -320,7 +341,7 @@ function handleSearchText(
 function handleGoogleSearch(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // No direct Pochi equivalent - map to executeCommand as placeholder
   const toolCall = {
@@ -345,69 +366,11 @@ function handleGoogleSearch(
   };
 }
 
-function handleWebFetch(
-  toolCallId: string,
-  input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
-): UIToolPart {
-  // No direct Pochi equivalent - map to executeCommand as placeholder
-  const toolCall = {
-    type: "tool-executeCommand" as const,
-    toolCallId,
-    input: {
-      command: `echo "Web fetch: ${(input.url as string) || ""}"`,
-    },
-  };
-
-  if (!toolResult) {
-    return { ...toolCall, state: "input-available" };
-  }
-
-  return {
-    ...toolCall,
-    state: "output-available",
-    output: {
-      output: String(toolResult.result || ""),
-      isTruncated: false,
-    },
-  };
-}
-
-function handleSaveMemory(
-  toolCallId: string,
-  input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
-): UIToolPart {
-  // No direct Pochi equivalent - map to writeToFile as placeholder
-  const memoryKey =
-    (input.key as string) || toolCallId.replace(/[^a-zA-Z0-9]/g, "_");
-  const toolCall = {
-    type: "tool-writeToFile" as const,
-    toolCallId,
-    input: {
-      path: `memory_${memoryKey}.txt`,
-      content: (input.value as string) || "",
-    },
-  };
-
-  if (!toolResult) {
-    return { ...toolCall, state: "input-available" };
-  }
-
-  return {
-    ...toolCall,
-    state: "output-available",
-    output: {
-      success: !toolResult.isError,
-    },
-  };
-}
-
 function handleUnrecognizedTool(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map unrecognized tools to executeCommand as placeholder
   const toolCall = {
@@ -415,7 +378,7 @@ function handleUnrecognizedTool(
     toolCallId,
     input: {
       command: `echo "Unrecognized tool '${toolName}' called with input: ${JSON.stringify(
-        input,
+        input
       )}"`,
     },
   };
@@ -442,6 +405,51 @@ function handleUnrecognizedTool(
 function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
   const convertedMessages: Message[] = [];
 
+  // First pass: collect all function calls and responses across all messages
+  const allFunctionCalls: Array<{
+    messageIndex: number;
+    name: string;
+    args: Record<string, unknown>;
+  }> = [];
+  const allFunctionResponses: Array<{
+    messageIndex: number;
+    name: string;
+    response: unknown;
+  }> = [];
+
+  for (let i = 0; i < geminiContents.length; i++) {
+    const content = geminiContents[i];
+    if (!content?.parts) continue;
+
+    for (const part of content.parts) {
+      if (
+        typeof part === "object" &&
+        part &&
+        "functionCall" in part &&
+        part.functionCall
+      ) {
+        allFunctionCalls.push({
+          messageIndex: i,
+          name: part.functionCall.name || "",
+          args: part.functionCall.args || {},
+        });
+      }
+
+      if (
+        typeof part === "object" &&
+        part &&
+        "functionResponse" in part &&
+        part.functionResponse
+      ) {
+        allFunctionResponses.push({
+          messageIndex: i,
+          name: part.functionResponse.name || "",
+          response: part.functionResponse.response,
+        });
+      }
+    }
+  }
+
   for (let i = 0; i < geminiContents.length; i++) {
     const content = geminiContents[i];
     if (!content) continue;
@@ -450,42 +458,87 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
 
     // Handle parts that contain function calls and responses
     if (content.parts) {
-      for (const part of content.parts) {
-        if (
-          typeof part === "object" &&
-          part &&
-          "functionCall" in part &&
-          part.functionCall
-        ) {
-          // Handle function call
-          const toolCall = convertGeminiToolCall(
-            `${i}-${part.functionCall.name}`,
-            part.functionCall.name || "",
-            part.functionCall.args || {},
-          );
-          parts.push(toolCall);
-        }
+      // Collect function calls and responses for this specific message
+      const messageFunctionCalls = allFunctionCalls.filter(
+        (call) => call.messageIndex === i
+      );
+      const messageFunctionResponses = allFunctionResponses.filter(
+        (resp) => resp.messageIndex === i
+      );
 
-        if (
-          typeof part === "object" &&
-          part &&
-          "functionResponse" in part &&
-          part.functionResponse
-        ) {
-          // Handle function response
+      const processedTools = new Set<string>();
+
+      // Process function calls in this message
+      for (const functionCall of messageFunctionCalls) {
+        const toolName = functionCall.name;
+        if (processedTools.has(toolName)) continue;
+
+        // Find the corresponding response for this tool (can be in any subsequent message)
+        const matchingResponse = allFunctionResponses.find(
+          (resp) =>
+            resp.name === toolName &&
+            resp.messageIndex > functionCall.messageIndex
+        );
+
+        const toolCallId = `${i}-${toolName}`;
+
+        if (matchingResponse) {
+          // Create tool part with both call and response
           const toolResult = {
-            toolCallId: `${i}-${part.functionResponse.name}`,
-            result: part.functionResponse.response,
+            toolCallId,
+            result: matchingResponse.response,
             isError: false,
           };
 
-          const convertedToolResult = convertGeminiToolCall(
-            toolResult.toolCallId,
-            part.functionResponse.name || "",
-            {},
-            toolResult,
+          const convertedToolPart = convertGeminiToolCall(
+            toolCallId,
+            toolName,
+            functionCall.args,
+            toolResult
           );
-          parts.push(convertedToolResult);
+          parts.push(convertedToolPart);
+        } else {
+          // Create tool part with only the call (no response yet)
+          const convertedToolPart = convertGeminiToolCall(
+            toolCallId,
+            toolName,
+            functionCall.args
+          );
+          parts.push(convertedToolPart);
+        }
+
+        processedTools.add(toolName);
+      }
+
+      // Process orphaned responses in this message (responses without preceding calls)
+      for (const functionResponse of messageFunctionResponses) {
+        const toolName = functionResponse.name;
+        if (processedTools.has(toolName)) continue;
+
+        // Check if there's a preceding function call for this response
+        const precedingCall = allFunctionCalls.find(
+          (call) =>
+            call.name === toolName &&
+            call.messageIndex < functionResponse.messageIndex
+        );
+
+        if (!precedingCall) {
+          // This is an orphaned response, create a tool part for it
+          const toolCallId = `${i}-${toolName}`;
+          const toolResult = {
+            toolCallId,
+            result: functionResponse.response,
+            isError: false,
+          };
+
+          const convertedToolPart = convertGeminiToolCall(
+            toolCallId,
+            toolName,
+            {},
+            toolResult
+          );
+          parts.push(convertedToolPart);
+          processedTools.add(toolName);
         }
       }
     }
@@ -496,7 +549,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         ?.filter(
           (part) =>
             typeof part === "string" ||
-            (typeof part === "object" && part && "text" in part),
+            (typeof part === "object" && part && "text" in part)
         )
         .map((part) => (typeof part === "string" ? part : (part as any).text))
         .join("") || "";
