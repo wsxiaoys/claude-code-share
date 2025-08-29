@@ -76,7 +76,9 @@ function handleReadFile(
   let content = "";
   if (toolResult.result && typeof toolResult.result === "object") {
     const resultObj = toolResult.result as any;
-    content = String(resultObj.output || resultObj.content || toolResult.result || "");
+    content = String(
+      resultObj.output || resultObj.content || toolResult.result || "",
+    );
   } else {
     content = String(toolResult.result || "");
   }
@@ -440,8 +442,6 @@ function handleUnrecognizedTool(
 function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
   const convertedMessages: Message[] = [];
 
-
-
   for (let i = 0; i < geminiContents.length; i++) {
     const content = geminiContents[i];
     if (!content) continue;
@@ -523,8 +523,6 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
       convertedMessages.push(message);
     }
   }
-
-
 
   return convertedMessages;
 }
