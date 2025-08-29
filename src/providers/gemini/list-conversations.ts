@@ -80,7 +80,7 @@ function extractTitleFromLogs(logsFilePath: string): string | undefined {
           !log.message.startsWith("/chat"),
       );
 
-      if (firstUserMessage && firstUserMessage.message) {
+      if (firstUserMessage?.message) {
         const message = firstUserMessage.message;
         return message.length > 50 ? `${message.substring(0, 50)}...` : message;
       }
@@ -109,8 +109,11 @@ function extractSecondMessage(filePath: string): string | undefined {
           // Skip the first user message (default message) and get the second one
           if (userMessageCount === 2) {
             const textParts = message.parts
-              .filter((part: any) => part.text && typeof part.text === "string")
-              .map((part: any) => part.text)
+              .filter(
+                (part: { text?: string }) =>
+                  part.text && typeof part.text === "string",
+              )
+              .map((part: { text: string }) => part.text)
               .join(" ");
 
             if (textParts) {
@@ -137,7 +140,7 @@ function extractSecondMessage(filePath: string): string | undefined {
   return undefined;
 }
 
-function extractFirstMessage(filePath: string): string | undefined {
+function _extractFirstMessage(filePath: string): string | undefined {
   try {
     const content = fs.readFileSync(filePath, "utf-8");
     const data = JSON.parse(content);
@@ -151,8 +154,11 @@ function extractFirstMessage(filePath: string): string | undefined {
           Array.isArray(message.parts)
         ) {
           const textParts = message.parts
-            .filter((part: any) => part.text && typeof part.text === "string")
-            .map((part: any) => part.text)
+            .filter(
+              (part: { text?: string }) =>
+                part.text && typeof part.text === "string",
+            )
+            .map((part: { text: string }) => part.text)
             .join(" ");
 
           if (textParts) {
