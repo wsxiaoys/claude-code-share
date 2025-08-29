@@ -99,7 +99,11 @@ function handleReadFile(
     type: "tool-readFile" as const,
     toolCallId,
     input: {
-      path: (input.path as string) || (input.file_path as string) || (input.absolute_path as string) || "",
+      path:
+        (input.path as string) ||
+        (input.file_path as string) ||
+        (input.absolute_path as string) ||
+        "",
       startLine: (input.startLine as number) || undefined,
       endLine: (input.endLine as number) || undefined,
     },
@@ -203,11 +207,32 @@ function handleShell(
     return { ...toolCall, state: "input-available" };
   }
 
+  // Extract shell command output from Gemini's structured format
+  let commandOutput = "";
+  if (toolResult.result && typeof toolResult.result === "object") {
+    const resultObj = toolResult.result as Record<string, unknown>;
+    const output = resultObj.output || resultObj.content || "";
+    const outputStr = String(output);
+
+    // Parse Gemini's shell output format: "Output: actual_output"
+    const outputMatch = outputStr.match(
+      /Output: ([\s\S]*?)(?:\nError:|\nExit Code:|$)/
+    );
+    if (outputMatch && outputMatch[1]) {
+      commandOutput = outputMatch[1].trim();
+    } else {
+      // Fallback to extractToolOutput if format doesn't match
+      commandOutput = extractToolOutput(toolResult.result);
+    }
+  } else {
+    commandOutput = extractToolOutput(toolResult.result);
+  }
+
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      output: extractToolOutput(toolResult.result),
+      output: commandOutput,
       isTruncated: false,
     },
   };
@@ -402,27 +427,27 @@ function handleUnrecognizedTool(
   input: Record<string, unknown>,
   toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
-  // Map unrecognized tools to executeCommand as placeholder
+  // Map unrecognized tools with dynamic type like Claude does
   const toolCall = {
-    type: "tool-executeCommand" as const,
+    type: `tool-${toolName}` as const,
     toolCallId,
-    input: {
-      command: `echo "Unrecognized tool '${toolName}' called with input: ${JSON.stringify(
-        input
-      )}"`,
-    },
+    input: (input as Record<string, unknown>) || {},
   };
 
   if (!toolResult) {
-    return { ...toolCall, state: "input-available" };
+    // @ts-ignore
+    return {
+      ...toolCall,
+      state: "input-available",
+    };
   }
 
+  // @ts-ignore
   return {
     ...toolCall,
     state: "output-available",
     output: {
-      output: String(toolResult.result || ""),
-      isTruncated: false,
+      output: extractToolOutput(toolResult.result),
     },
   };
 }
