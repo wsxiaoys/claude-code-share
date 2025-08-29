@@ -15,11 +15,7 @@
 // - SearchText ↔ `searchFiles`
 // - ReadManyFiles ↔ `batchCall` (can be used to read multiple files)
 
-import type {
-  FunctionDeclaration,
-  PartListUnion,
-  PartUnion,
-} from "@google/genai";
+import type { PartListUnion, PartUnion } from "@google/genai";
 
 export enum ToolErrorType {
   // General Errors
@@ -81,8 +77,6 @@ export enum ToolErrorType {
   // WebSearch-specific Errors
   WEB_SEARCH_FAILED = "web_search_failed",
 }
-
-type ToolParams = Record<string, unknown>;
 
 export interface DiffStat {
   ai_removed_lines: number;
@@ -354,21 +348,21 @@ export interface ProcessedFileReadResult {
 /**
  * Result type for file processing operations
  */
-type FileProcessingResult =
-  | {
-      success: true;
-      filePath: string;
-      relativePathForDisplay: string;
-      fileReadResult: ProcessedFileReadResult;
-      reason?: undefined;
-    }
-  | {
-      success: false;
-      filePath: string;
-      relativePathForDisplay: string;
-      fileReadResult?: undefined;
-      reason: string;
-    };
+// type FileProcessingResult =
+//   | {
+//       success: true;
+//       filePath: string;
+//       relativePathForDisplay: string;
+//       fileReadResult: ProcessedFileReadResult;
+//       reason?: undefined;
+//     }
+//   | {
+//       success: false;
+//       filePath: string;
+//       relativePathForDisplay: string;
+//       fileReadResult?: undefined;
+//       reason: string;
+//     };
 
 /**
  * Parameters for the GrepTool
