@@ -51,7 +51,7 @@ function convertGeminiToolCall(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map Gemini tools to Pochi equivalents
   switch (toolName) {
@@ -73,9 +73,6 @@ function convertGeminiToolCall(
     case "list_directory":
       return handleReadFolder(toolCallId, input, toolResult);
 
-    case "read_many_files":
-      return handleReadManyFiles(toolCallId, input, toolResult);
-
     case "search_file_content":
       return handleSearchText(toolCallId, input, toolResult);
 
@@ -89,7 +86,7 @@ function convertGeminiToolCall(
 function handleReadFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"readFile"> {
   const toolCall = {
     type: "tool-readFile" as const,
@@ -125,7 +122,7 @@ function handleReadFile(
 function handleWriteFile(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"writeToFile"> {
   const toolCall = {
     type: "tool-writeToFile" as const,
@@ -152,7 +149,7 @@ function handleWriteFile(
 function handleEdit(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"applyDiff"> {
   const toolCall = {
     type: "tool-applyDiff" as const,
@@ -189,7 +186,7 @@ function handleEdit(
 function handleShell(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"executeCommand"> {
   const toolCall = {
     type: "tool-executeCommand" as const,
@@ -217,7 +214,7 @@ function handleShell(
 
       // Parse Gemini's shell output format: "Output: actual_output"
       const outputMatch = outputStr.match(
-        /Output: ([\s\S]*?)(?:\nError:|\nExit Code:|$)/,
+        /Output: ([\s\S]*?)(?:\nError:|\nExit Code:|$)/
       );
       if (outputMatch?.[1]) {
         commandOutput = outputMatch[1].trim();
@@ -243,7 +240,7 @@ function handleShell(
 function handleFindFiles(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"globFiles"> {
   const toolCall = {
     type: "tool-globFiles" as const,
@@ -274,7 +271,7 @@ function handleFindFiles(
 function handleReadFolder(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"listFiles"> {
   const toolCall = {
     type: "tool-listFiles" as const,
@@ -300,39 +297,10 @@ function handleReadFolder(
   };
 }
 
-function handleReadManyFiles(
-  toolCallId: string,
-  _input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
-): UIToolPart<"batchCall"> {
-  // TODO: Implement batch call mapping for reading multiple files
-  // This would require understanding Gemini's ReadManyFiles format
-  const toolCall = {
-    type: "tool-batchCall" as const,
-    toolCallId,
-    input: {
-      description: "Read multiple files",
-      invocations: [], // TODO: Map from Gemini's ReadManyFiles input format
-    },
-  };
-
-  if (!toolResult) {
-    return { ...toolCall, state: "input-available" };
-  }
-
-  return {
-    ...toolCall,
-    state: "output-available",
-    output: {
-      success: !toolResult.isError,
-    },
-  };
-}
-
 function handleSearchText(
   toolCallId: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart<"searchFiles"> {
   const toolCall = {
     type: "tool-searchFiles" as const,
@@ -397,7 +365,7 @@ function handleUnrecognizedTool(
   toolCallId: string,
   toolName: string,
   input: Record<string, unknown>,
-  toolResult?: { result: unknown; isError?: boolean },
+  toolResult?: { result: unknown; isError?: boolean }
 ): UIToolPart {
   // Map unrecognized tools with dynamic type like Claude does
   const toolCall = {
@@ -487,10 +455,10 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
     if (content.parts) {
       // Collect function calls and responses for this specific message
       const messageFunctionCalls = allFunctionCalls.filter(
-        (call) => call.messageIndex === i,
+        (call) => call.messageIndex === i
       );
       const messageFunctionResponses = allFunctionResponses.filter(
-        (resp) => resp.messageIndex === i,
+        (resp) => resp.messageIndex === i
       );
 
       const processedTools = new Set<string>();
@@ -504,7 +472,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         const matchingResponse = allFunctionResponses.find(
           (resp) =>
             resp.name === toolName &&
-            resp.messageIndex > functionCall.messageIndex,
+            resp.messageIndex > functionCall.messageIndex
         );
 
         const toolCallId = `${i}-${toolName}`;
@@ -521,7 +489,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
             toolCallId,
             toolName,
             functionCall.args,
-            toolResult,
+            toolResult
           );
           parts.push(convertedToolPart);
         } else {
@@ -529,7 +497,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
           const convertedToolPart = convertGeminiToolCall(
             toolCallId,
             toolName,
-            functionCall.args,
+            functionCall.args
           );
           parts.push(convertedToolPart);
         }
@@ -546,7 +514,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         const precedingCall = allFunctionCalls.find(
           (call) =>
             call.name === toolName &&
-            call.messageIndex < functionResponse.messageIndex,
+            call.messageIndex < functionResponse.messageIndex
         );
 
         if (!precedingCall) {
@@ -562,7 +530,7 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
             toolCallId,
             toolName,
             {},
-            toolResult,
+            toolResult
           );
           parts.push(convertedToolPart);
           processedTools.add(toolName);
@@ -576,10 +544,10 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         ?.filter(
           (part) =>
             typeof part === "string" ||
-            (typeof part === "object" && part && "text" in part),
+            (typeof part === "object" && part && "text" in part)
         )
         .map((part) =>
-          typeof part === "string" ? part : (part as { text: string }).text,
+          typeof part === "string" ? part : (part as { text: string }).text
         )
         .join("") || "";
 
