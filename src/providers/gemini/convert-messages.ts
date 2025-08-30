@@ -179,6 +179,16 @@ function handleEdit(
     return { ...toolCall, state: "input-available" };
   }
 
+  if (toolResult.isError) {
+    return {
+      ...toolCall,
+      state: "output-available",
+      output: {
+        success: false,
+      },
+    };
+  }
+
   return {
     ...toolCall,
     state: "output-available",
