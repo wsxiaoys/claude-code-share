@@ -113,7 +113,9 @@ function handleReadFile(
   const resultData = {
     content: toolResult.isError ? "" : content,
     isTruncated: false,
-    error: toolResult.isError ? extractToolOutput(toolResult.result) : undefined,
+    error: toolResult.isError
+      ? extractToolOutput(toolResult.result)
+      : undefined,
   };
 
   return {
@@ -141,12 +143,18 @@ function handleWriteFile(
     return { ...toolCall, state: "input-available" };
   }
 
+  const result: { success: boolean; error?: string } = {
+    success: !toolResult.isError,
+  };
+
+  if (toolResult.isError) {
+    result.error = extractToolOutput(toolResult.result);
+  }
+
   return {
     ...toolCall,
     state: "output-available",
-    output: {
-      success: !toolResult.isError,
-    },
+    output: result,
   };
 }
 
@@ -484,10 +492,12 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         if (matchingResponse) {
           // Create tool part with both call and response
           // Check if the response contains an error field
-          const hasError = !!(matchingResponse.response && 
-            typeof matchingResponse.response === 'object' && 
-            'error' in matchingResponse.response);
-          
+          const hasError = !!(
+            matchingResponse.response &&
+            typeof matchingResponse.response === "object" &&
+            "error" in matchingResponse.response
+          );
+
           const toolResult = {
             toolCallId,
             result: matchingResponse.response,
@@ -530,10 +540,12 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
           // This is an orphaned response, create a tool part for it
           const toolCallId = `${i}-${toolName}`;
           // Check if the response contains an error field
-          const hasError = !!(functionResponse.response && 
-            typeof functionResponse.response === 'object' && 
-            'error' in functionResponse.response);
-          
+          const hasError = !!(
+            functionResponse.response &&
+            typeof functionResponse.response === "object" &&
+            "error" in functionResponse.response
+          );
+
           const toolResult = {
             toolCallId,
             result: functionResponse.response,
