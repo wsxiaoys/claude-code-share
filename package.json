@@ -24,6 +24,7 @@
     "@anthropic-ai/sdk": "^0.56.0",
     "@commander-js/extra-typings": "^14.0.0",
     "@getpochi/tools": "^0.1.1",
+    "@google/genai": "^1.15.0",
     "ai": "^5",
     "commander": "^14.0.0",
     "ink": "^6.1.0",
