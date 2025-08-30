@@ -109,13 +109,17 @@ function handleReadFile(
   // Extract content from nested structure: toolResult.result.output
   const content = extractToolOutput(toolResult.result);
 
+  // Check if there's an error in the tool result
+  const resultData = {
+    content: toolResult.isError ? "" : content,
+    isTruncated: false,
+    error: toolResult.isError ? extractToolOutput(toolResult.result) : undefined,
+  };
+
   return {
     ...toolCall,
     state: "output-available",
-    output: {
-      content,
-      isTruncated: false,
-    },
+    output: resultData,
   };
 }
 
@@ -479,10 +483,15 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
 
         if (matchingResponse) {
           // Create tool part with both call and response
+          // Check if the response contains an error field
+          const hasError = !!(matchingResponse.response && 
+            typeof matchingResponse.response === 'object' && 
+            'error' in matchingResponse.response);
+          
           const toolResult = {
             toolCallId,
             result: matchingResponse.response,
-            isError: false,
+            isError: hasError,
           };
 
           const convertedToolPart = convertGeminiToolCall(
@@ -520,10 +529,15 @@ function convertGeminiContentsToMessages(geminiContents: Content[]): Message[] {
         if (!precedingCall) {
           // This is an orphaned response, create a tool part for it
           const toolCallId = `${i}-${toolName}`;
+          // Check if the response contains an error field
+          const hasError = !!(functionResponse.response && 
+            typeof functionResponse.response === 'object' && 
+            'error' in functionResponse.response);
+          
           const toolResult = {
             toolCallId,
             result: functionResponse.response,
-            isError: false,
+            isError: hasError,
           };
 
           const convertedToolPart = convertGeminiToolCall(
