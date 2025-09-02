@@ -14,6 +14,10 @@
 - **Shareable Links**: Generates short, clean URLs for your conversations using [Pochi](https://getpochi.com) renderers, which will be open-sourced soon.
 - **Status Line Integration**: Display a share link directly in your Claude Code status line.
 
+## 🎬 Demo
+
+![Claude Code Share Demo](./assets/cc-share-final.gif)
+
 ### Usage
 
 There are several ways to use `claude-code-share`:
